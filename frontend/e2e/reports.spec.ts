@@ -1,0 +1,36 @@
+import { expect, test } from '@playwright/test'
+
+test('analyzes a real Ethereum sample and retrieves the stored report', async ({ page }) => {
+  test.setTimeout(120_000)
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto('/')
+  await expect(page.getByText('API connected')).toBeVisible()
+  await page.screenshot({ path: '../docs/screenshots/landing.png', fullPage: true })
+  await page.getByRole('button', { name: /Ethereum \/ recorded transaction/ }).click()
+  await expect(page).toHaveURL(/\/reports\//, { timeout: 110_000 })
+  await expect(page.getByRole('heading', { name: 'Transaction intelligence.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Completeness & limitations' })).toBeVisible()
+  const reportId = page.url().split('/').pop()
+  const download = await page.request.get('/api/v1/reports/' + reportId + '/download')
+  expect(download.ok()).toBe(true)
+  const report = await download.json()
+  expect(report.chain).toBe('ethereum')
+  expect(report.transaction_hash).toBe('0xa5e6aec48fffd1c35d8410e2e81b63e1fca740bde922f5f2d4b7da50f65f532f')
+  const originalUrl = page.url()
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Transaction intelligence.' })).toBeVisible()
+  expect(page.url()).toBe(originalUrl)
+  await page.screenshot({ path: '../docs/screenshots/report.png' })
+  await page.setViewportSize({ width: 390, height: 844 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.screenshot({ path: '../docs/screenshots/report-mobile.png' })
+  expect(errors).toEqual([])
+})
+
+test('validates a malformed transaction hash before submission', async ({ page }) => {
+  await page.goto('/')
+  await page.getByLabel('Transaction hash').fill('0x123')
+  await page.getByRole('button', { name: 'Analyze transaction →' }).click()
+  await expect(page.getByRole('alert')).toContainText('64-digit')
+})
