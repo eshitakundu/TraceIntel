@@ -63,3 +63,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t traceintel:ci .
+      - name: Smoke test assigned port and readiness
+        run: |
+          docker run -d --name traceintel-smoke -e PORT=10000 -p 127.0.0.1:10000:10000 traceintel:ci
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:10000/api/v1/ready; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs traceintel-smoke
+          exit 1
+      - name: Stop smoke container
+        if: always()
+        run: docker rm -f traceintel-smoke

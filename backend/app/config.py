@@ -11,7 +11,10 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "test", "production"] = "development"
     cors_origins: list[str] = ["http://localhost:5173"]
-    database_url: SecretStr = SecretStr("sqlite+aiosqlite:///./traceintel.db")
+    database_url: SecretStr = Field(
+        default=SecretStr("sqlite+aiosqlite:///./traceintel.db"),
+        validation_alias=AliasChoices("TRACEINTEL_DATABASE_URL", "DATABASE_URL"),
+    )
     ethereum_rpc_url: SecretStr = SecretStr("https://ethereum-rpc.publicnode.com")
     monad_rpc_url: SecretStr = SecretStr("https://rpc.monad.xyz")
     openrouter_api_key: SecretStr = Field(
@@ -34,6 +37,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def production_requirements(self) -> Self:
+        url = self.database_url.get_secret_value()
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                self.database_url = SecretStr("postgresql+asyncpg://" + url[len(prefix) :])
+                break
         if self.environment == "production":
             if not self.database_url.get_secret_value().startswith("postgresql+asyncpg://"):
                 raise ValueError("Production requires PostgreSQL persistence.")

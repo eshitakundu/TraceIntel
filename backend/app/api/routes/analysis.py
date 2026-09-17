@@ -36,6 +36,8 @@ async def supported_chains(request: Request) -> list[dict[str, str | int]]:
 @router.post("/analyses", response_model=AnalysisJob, status_code=202, tags=["analysis"])
 async def analyze(payload: AnalysisRequest, request: Request) -> AnalysisJob:
     app = service(request)
+    if not request.app.state.lease_healthy:
+        raise HTTPException(503, "Job coordination is unavailable. Retry later.")
     ip = request.client.host if request.client else "unknown"
     if trusted_proxy(request, app.settings):
         ip = request.headers.get("x-traceintel-client-ip", ip)

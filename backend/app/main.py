@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -26,11 +28,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 timeout=settings.rpc_timeout_seconds,
                 limits=httpx.Limits(max_connections=32, max_keepalive_connections=16),
             ) as client:
+                application.state.database = engine
+                application.state.lease_healthy = True
                 application.state.analysis = AnalysisService(repository, settings, client)
+
+                async def maintain_leases() -> None:
+                    try:
+                        while True:
+                            await asyncio.sleep(15)
+                            async with asyncio.timeout(10):
+                                await repository.renew_leases()
+                                await repository.recover_interrupted()
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception:
+                        application.state.lease_healthy = False
+                        logging.getLogger(__name__).error("Job lease maintenance failed.")
+                        await application.state.analysis.close()
+
+                heartbeat = asyncio.create_task(maintain_leases())
                 try:
                     yield
                 finally:
+                    heartbeat.cancel()
+                    await asyncio.gather(heartbeat, return_exceptions=True)
                     await application.state.analysis.close()
+                    await repository.release_owned()
         finally:
             await engine.dispose()
 

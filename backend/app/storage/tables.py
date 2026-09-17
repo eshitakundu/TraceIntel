@@ -1,4 +1,6 @@
-from sqlalchemy import Integer, String, Text
+from datetime import datetime
+
+from sqlalchemy import DateTime, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -12,6 +14,10 @@ class JobRow(Base):
     cache_key: Mapped[str | None] = mapped_column(String(200), unique=True, nullable=True)
     status: Mapped[str] = mapped_column(String(20), index=True)
     payload: Mapped[str] = mapped_column(Text)
+    owner_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class ReportRow(Base):
