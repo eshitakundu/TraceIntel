@@ -1,0 +1,5 @@
+# Set API_DOMAIN to the public API hostname in Caddy's environment.
+{$API_DOMAIN} {
+    reverse_proxy 127.0.0.1:8000
+    header X-Content-Type-Options nosniff
+}

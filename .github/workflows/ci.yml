@@ -5,16 +5,34 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        database: [sqlite, postgres]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: traceintel
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: traceintel
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U traceintel"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TRACEINTEL_TEST_DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgresql+asyncpg://traceintel:ci-only-password@localhost:5432/traceintel' || 'sqlite+aiosqlite:///./ci-test.db' }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
+          version: '0.11.15'
           enable-cache: true
       - run: uv sync --locked --python 3.12
-      - run: uv run ruff check backend
-      - run: uv run ruff format --check backend
+      - run: uv run ruff check backend scripts
+      - run: uv run ruff format --check backend scripts
       - run: uv run mypy
       - run: uv run pytest
+      - run: PYTHONPATH=backend uv run python -m app.evaluation.runner
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -27,8 +45,21 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.11.15'
+      - run: uv sync --locked --python 3.12
+        working-directory: .
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npx wrangler deploy --dry-run
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t traceintel:ci .
