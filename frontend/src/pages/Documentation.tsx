@@ -110,7 +110,7 @@ export default function Documentation({
           <h2>Deployment</h2>
           <p>
             A Python 3.12 FastAPI backend and Node 22 React/Vite frontend.
-            Production targets a DigitalOcean Docker API and Cloudflare
+            Production targets a Render Docker API and Cloudflare
             frontend. Workers compatibility does not block the backend.
           </p>
         </>

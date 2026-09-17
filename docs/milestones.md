@@ -13,6 +13,6 @@ Completed locally:
 10. Docker/API and Cloudflare packaging, CI, local live verification and operating documentation.
 11. ERC-20 persistent exposure analysis, block-pinned current queries, separate historical/current metrics, Then → Now dashboard and regression tests.
 
-Public deployment is deliberately deferred by the user until host/account/domain details are supplied. DigitalOcean Docker API + Cloudflare frontend remains the target. Optional Python Worker/Pyodide compatibility is not claimed.
+Production is being configured manually: the existing Cloudflare Worker/static-assets frontend will proxy to Render. The final Render URL and shared proxy token are runtime settings. No Cloudflare deployment is performed by the assistant. Optional Python Worker/Pyodide compatibility is not claimed.
 
 Every coherent implementation unit is checked, reviewed for staged credentials/generated files, and committed with a descriptive conventional message.

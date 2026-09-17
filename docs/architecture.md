@@ -20,11 +20,11 @@ AnalysisService owns sequencing and bounded async work. It depends on ReportRepo
 
 Jobs persist real stages. Unique cache keys suppress concurrent duplicate work. Cache buckets incorporate chain/hash, analyzer version, date and configured interpretation identity. Cached completed reports revalidate their block hash before reuse. Stored reports remain as-of snapshots.
 
-A semaphore bounds active pipelines; the queue, per-client requests, total daily analyses and model jobs are capped. Atomic SQL budget updates work across database connections. The current process owns its tasks and marks interrupted jobs retryable on startup; multiple simultaneous API processes are unsupported.
+A semaphore bounds active pipelines; the queue, per-client requests, total daily analyses and model jobs are capped. Atomic SQL budget updates work across database connections. The current process owns its tasks and recovers only expired/unowned job leases; one configured API worker/instance is supported, with leases protecting temporary deployment overlap.
 
 ## Hosting
 
-Cloudflare serves assets and proxies API requests to a DigitalOcean Docker service. A shared origin token protects POST requests; client identity is accepted only through that authenticated proxy. PostgreSQL is persistent and private to the deployment network. No secrets are bundled into frontend assets.
+Cloudflare serves assets and proxies API requests to a Render Docker service. A shared origin token protects POST requests; client identity is accepted only through that authenticated proxy. PostgreSQL is persistent and private to the deployment network. No secrets are bundled into frontend assets.
 
 ## Persistent exposure extension
 

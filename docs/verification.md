@@ -28,3 +28,6 @@ Screenshots show the real local application:
 - [NOOA interpretation](screenshots/nooa-analysis.png)
 
 Two upstream test-client deprecation warnings remain (Starlette/httpx and anyio). No test failed. GitHub Actions is configured but no hosted workflow run is claimed. Cloudflare account deployment, production domains and DigitalOcean SSH deployment remain deferred.
+## Render backend preparation
+
+The backend was subsequently prepared for Render while preserving the existing Cloudflare Worker and frontend/wrangler.jsonc. Verified: 40 tests on SQLite and 40 on PostgreSQL, strict types/lint, all twelve deterministic evaluations, Docker startup on PORT=10000 using Render-format DATABASE_URL, readiness HTTP 200, unauthenticated POST HTTP 403, process UID 10001, and Alembic revision 0002. Lease tests cover healthy deployment overlap, expired-job recovery and owner-scoped shutdown. No Cloudflare or Render deployment was performed by the assistant.

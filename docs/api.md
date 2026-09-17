@@ -5,6 +5,7 @@ Local base: http://localhost:8000/api/v1. Production clients use the public Clou
 | Method | Path | Result |
 |---|---|---|
 | GET | /health | Process liveness; not provider readiness |
+| GET | /ready | Database and job-lease readiness; no paid provider calls |
 | GET | /chains | Supported chain metadata without RPC credentials |
 | POST | /analyses | 202 persisted job, or cached existing job |
 | GET | /analyses/{uuid} | Status, actual stage, report ID or safe error |

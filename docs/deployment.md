@@ -1,53 +1,97 @@
-# Deployment: Cloudflare + DigitalOcean
+# Deployment: existing Cloudflare Worker + Render backend
 
-Public deployment is deferred until account, SSH host/user and hostnames are supplied. Docker/PostgreSQL execution and Cloudflare deployment packaging have been verified locally.
+The production topology is:
 
-## API host
-
-Use a Linux DigitalOcean host with Docker Compose and a TLS reverse proxy. Keep the repository's .env only on the host; do not put it in the image.
-
-Set:
-- TRACEINTEL_ENVIRONMENT=production
-- POSTGRES_PASSWORD to a strong database password
-- TRACEINTEL_DATABASE_URL to postgresql+asyncpg://traceintel:PASSWORD@db:5432/traceintel
-- TRACEINTEL_PROXY_TOKEN to a random value of at least 32 characters
-- OPENROUTER_API_KEY and OPENROUTER_MODEL=openrouter/auto
-- RPC and optional explorer settings as needed
-
-URL-encode special characters in the database password when constructing DATABASE_URL.
-
-```sh
-docker compose config --quiet
-docker compose up -d --build
-curl http://127.0.0.1:8000/api/v1/health
+```text
+traceintel.eshita.dev          -> existing Cloudflare Worker + static assets
+traceintel.eshita.dev/api/*    -> Worker proxy -> Render Docker API
+                                                  -> Render PostgreSQL
 ```
 
-The API migrates the schema before starting, runs as a non-root user and binds only to host loopback. PostgreSQL uses a persistent named volume and has no published port. Use deploy/Caddyfile with API_DOMAIN set to the API hostname; point DNS there and allow TLS traffic.
+Keep frontend/wrangler.jsonc, its ASSETS binding, SPA fallback and Worker proxy. This setup does not use Cloudflare Pages. The Worker is already being configured manually from GitHub; no Cloudflare deployment is performed by the backend setup.
 
-Run one API process/replica: interrupted-job recovery is intentionally single-process. Rolling multi-worker deployment requires leases/queue coordination first. Back up PostgreSQL before migrations and test restores. Reports and job budgets persist in PostgreSQL; replacing the API container does not remove them.
+## 1. Render PostgreSQL
 
-The daily LLM job cap is not a dollar cap, especially with auto routing. Set an appropriate OpenRouter key spend cap before public launch.
+Create a durable Render PostgreSQL database in the same account and region as the API. Copy its **internal database URL** into the API's DATABASE_URL runtime secret. Use the direct database connection for migrations. The backend accepts Render's postgres:// or postgresql:// URL and selects the asyncpg driver without changing encoded credentials. TRACEINTEL_DATABASE_URL is an alternative with higher precedence; use only one name.
 
-## Cloudflare frontend
+Use an always-on API and durable database plan for production. Free service sleep can interrupt in-process jobs; inspect Render's resource limits and choose capacity appropriate for NOOA before enabling public traffic. The repository does not provision or purchase resources automatically.
 
-From frontend:
-```sh
-npm ci
-npm run build
-npx wrangler login
-npx wrangler secret put API_ORIGIN
-npx wrangler secret put API_PROXY_TOKEN
-npx wrangler deploy
-```
+## 2. Render Docker web service
 
-API_ORIGIN is the HTTPS API origin. API_PROXY_TOKEN must match TRACEINTEL_PROXY_TOKEN. Keep both out of frontend build variables. Configure the final custom hostname in Cloudflare after the first deployment.
+Connect this GitHub repository and use these settings:
 
-The Worker serves Vite assets with SPA fallback and proxies API/OpenAPI/docs requests. It caps JSON request bodies, sanitizes forwarded headers and returns an explicit 503 if deployment settings are missing. No API keys are embedded in static assets.
+| Setting | Value |
+| --- | --- |
+| Runtime | Docker |
+| Root directory | Repository root (leave blank) |
+| Dockerfile | ./Dockerfile |
+| Docker build context | . |
+| Docker command | Leave blank; use the image command |
+| Health check path | /api/v1/ready |
+| Instances | 1, no autoscaling |
+| Pre-deploy command | alembic upgrade head |
+| Auto-deploy | After CI checks pass |
 
-## Release verification
+The optional root render.yaml Blueprint defines **only the API**, not the frontend or database. It asks for DATABASE_URL and OPENROUTER_API_KEY, and generates TRACEINTEL_PROXY_TOKEN. Review the chosen Render compute plan during setup. If you already created the API manually, apply the table and variables below instead of creating a duplicate service.
 
-Run make check, make evaluate and the browser suite. Verify a real transaction through the public origin, reload/download its stored report, exercise an invalid hash, verify NOOA status and citations, then restart the API and confirm the report survives. Check the real public URL before adding a live link to README.
+Set these Render runtime variables/secrets:
 
-## Cloudflare Python Workers
+| Name | Value |
+| --- | --- |
+| DATABASE_URL | Render PostgreSQL internal connection URL (secret) |
+| TRACEINTEL_ENVIRONMENT | production |
+| TRACEINTEL_PROXY_TOKEN | Random secret of at least 32 characters; Blueprint generates one |
+| OPENROUTER_API_KEY | Your existing OpenRouter key (secret) |
+| OPENROUTER_MODEL | openrouter/auto |
+| TRACEINTEL_CORS_ORIGINS | ["https://traceintel.eshita.dev"] |
+| TRACEINTEL_SKIP_MIGRATIONS | true **only when the pre-deploy migration command is configured** |
+| TRACEINTEL_MAX_CONCURRENT_ANALYSES | 2 |
+| TRACEINTEL_REQUESTS_PER_HOUR | 20 |
+| TRACEINTEL_DAILY_ANALYSES | 100 |
+| TRACEINTEL_DAILY_LLM_ANALYSES | 20 |
 
-Backend development and deployment do not depend on Pyodide. The normal Python image successfully imports and executes NOOA. Python Worker compatibility has not been claimed; it remains an optional separate investigation. The approved production target is Docker.
+Render supplies PORT; the image binds 0.0.0.0:$PORT (local fallback 8000). Do not set a frontend VITE_* backend URL. Your local ignored .env is not copied to Render: add secrets in its dashboard.
+
+Optional TRACEINTEL_ETHEREUM_RPC_URL, TRACEINTEL_MONAD_RPC_URL and TRACEINTEL_EXPLORER_API_KEY configure your providers. Keep TRACEINTEL_TRACES_ENABLED=false unless the RPC supports tracing. Missing provider data stays explicit. Set an OpenRouter key spending cap; the daily job limit is not a dollar limit.
+
+For manual services without pre-deploy support, omit TRACEINTEL_SKIP_MIGRATIONS: the image migrates before listening. Do not skip migrations without running them elsewhere.
+
+## 3. Connect the existing Worker after Render supplies the URL
+
+In **Cloudflare Dashboard → Workers & Pages → existing TraceIntel Worker → Settings → Variables and Secrets**, add these **runtime** entries:
+
+| Name | Type | Exact value to supply |
+| --- | --- | --- |
+| API_ORIGIN | Plaintext variable (or secret) | https://YOUR-RENDER-SERVICE.onrender.com |
+| API_PROXY_TOKEN | Secret | Exact same value as Render's TRACEINTEL_PROXY_TOKEN |
+
+API_ORIGIN is only the HTTPS origin: no /api, /api/v1, query string or path. The Worker appends the incoming request path. Keep the existing traceintel.eshita.dev domain/route and ASSETS binding. Apply the runtime settings to the production Worker through your existing manual workflow; there is no repository Wrangler change to make.
+
+Do **not** put the OpenRouter key, database URL or Render API token in Cloudflare. API_PROXY_TOKEN is the shared origin-authentication secret, not a Render account API token. It is never shipped to the browser.
+
+## 4. Verify the connection
+
+1. Open https://YOUR-RENDER-SERVICE.onrender.com/api/v1/ready. Expect HTTP 200 with status ok.
+2. Open https://traceintel.eshita.dev/api/v1/health and /api/v1/ready. Both should return JSON.
+3. Submit the approval sample from the public dashboard. Verify job progress, Then → Now state, coverage and NOOA status.
+4. Reload and download the stored report. Restart/redeploy the API and retrieve the same report again.
+5. A direct Render analysis POST without the shared token must be rejected. Do not paste tokens into screenshots or public logs.
+
+Worker 503 "API deployment is not configured" means a runtime setting is missing. An origin authorization error means the two proxy token values differ. A Worker 502 means the backend is unreachable or timed out. Render readiness 503 means persistence or job coordination is unavailable.
+
+## Restart and migration behavior
+
+Alembic migration 0002 adds nullable owner/lease columns to jobs without altering immutable reports. Each process renews its own job leases every 15 seconds; leases expire after 60 seconds. Startup and periodic recovery mark only expired/unowned jobs retryable. A replacement instance therefore leaves healthy jobs on the outgoing instance alone.
+
+Shutdown cancels owned work and marks only that process's unfinished jobs interrupted. A lost lease cannot revive a terminal job. Heartbeat failure stops local analysis and causes readiness/new submissions to fail closed. A killed process's jobs become retryable after lease expiry and the next recovery sweep.
+
+Keep one configured API instance/worker. Leases protect deployment overlap; queue concurrency remains per-process. Reports, request budgets and cache keys are in PostgreSQL. Back up the database before migrations. Migration 0002's first adoption from an older unleased deployment should happen with old analysis work drained.
+
+Existing compose.yml and deploy/Caddyfile remain optional self-hosted Docker tooling; Render does not need Caddy or a local persistent disk.
+
+## References
+
+- [Render Docker deployment](https://render.com/docs/docker)
+- [Render PostgreSQL connections](https://render.com/docs/postgresql-creating-connecting)
+- [Render health checks](https://render.com/docs/health-checks)
+- [Render Blueprint specification](https://render.com/docs/blueprint-spec)
