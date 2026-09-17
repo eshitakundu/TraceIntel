@@ -1,15 +1,18 @@
-# Milestones
+# Implementation status
 
-0. Clean starter baseline and ignored secrets.
-1. Runnable FastAPI/React foundation, Node 22, health connectivity, tooling and CI.
-2. NOOA typed-operation investigation; Workers compatibility is independent.
-3. Async configurable Ethereum/Monad acquisition.
-4. Deterministic transaction and standard event decoding.
-5. Contract/proxy intelligence, optional traces.
-6. Versioned deterministic risk signals and scores.
-7. NOOA interpretations and evidence validation.
-8. Persistent jobs/reports/cache behind repositories, SQLite/PostgreSQL and migrations.
-9. Report dashboard and reproducible evaluation cases.
-10. Production protection, deployment, live verification and documentation.
+Completed locally:
+1. Clean starter Git baseline, ignored secrets, Python 3.12/FastAPI, React/TypeScript/Vite with Node 22.
+2. NOOA typed operation investigation and restricted integration.
+3. Ethereum/Monad asynchronous acquisition and immutable evidence.
+4. Transaction/calldata and common event decoding.
+5. Historical contract/proxy inspection, optional tracing and metadata.
+6. Deterministic versioned historical risk scoring.
+7. Cited NOOA transaction, contract and synthesis roles with claim validation.
+8. SQLite/PostgreSQL repositories, migrations, persisted jobs, budgets and cache.
+9. Responsive reports, shareable URLs, JSON downloads, methodology and evaluations.
+10. Docker/API and Cloudflare packaging, CI, local live verification and operating documentation.
+11. ERC-20 persistent exposure analysis, block-pinned current queries, separate historical/current metrics, Then → Now dashboard and regression tests.
 
-Each coherent unit requires relevant checks, diff/status and staged-file review, then a descriptive conventional commit.
+Public deployment is deliberately deferred by the user until host/account/domain details are supplied. DigitalOcean Docker API + Cloudflare frontend remains the target. Optional Python Worker/Pyodide compatibility is not claimed.
+
+Every coherent implementation unit is checked, reviewed for staged credentials/generated files, and committed with a descriptive conventional message.

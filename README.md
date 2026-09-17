@@ -1,41 +1,120 @@
 # TraceIntel
 
-Evidence-first EVM transaction intelligence. Blockchain facts and risk scores belong to deterministic Python; NOOA will interpret immutable evidence with traceable citations.
+**Historical transaction + persistent exposure intelligence.** Give TraceIntel an Ethereum or Monad transaction hash. It acquires on-chain evidence, decodes activity, inspects contracts, computes documented risk indicators, checks which ERC-20 permissions remain active at a recorded current block, and uses restricted NOOA agents to organize a cited report.
 
-## Current status
+![TraceIntel dashboard](docs/screenshots/landing.png)
 
-The foundation includes FastAPI, validated environment configuration, a typed health endpoint, React/TypeScript dashboard, live API connectivity, routing, tests, lint/type/build checks and CI. Transaction analysis, agents, persistence and deployment are subsequent milestones. There is no live public site yet.
+![Then vs now](docs/screenshots/exposure-comparison.png)
 
-## Local development
+## Status
 
-Requires Python 3.12, uv, Node **22 LTS** (22.12 or newer), npm and Make. Use `nvm install && nvm use` if you use nvm.
+The application runs locally. Real Ethereum and Monad acquisition, the Docker API with PostgreSQL, and live NOOA analysis using `openrouter/auto` have been exercised. The Cloudflare bundle passes a deployment dry run. **Public hosting is deferred** pending deployment account/host/domain configuration; no live URL is claimed.
+
+## Capabilities
+
+- Ethereum and Monad through a configurable chain registry; asynchronous, bounded, read-only JSON-RPC.
+- Transaction/receipt/block consistency checks; exact gas/value integers; standard and explorer-ABI calldata decoding.
+- ERC20 transfers/approvals, ERC721 patterns, ERC1155 events, native value and optional call traces.
+- Maximum allowances, operator approvals, token metadata, historical bytecode and EIP-1967 implementation/beacon slots.
+- Explorer verification represented as verified, unverified or unavailable; missing data remains explicit.
+- ERC-20 Then → Now comparison: allowance, owner balance, spender bytecode, deterministic exposure status and block/time provenance.
+- Separate historical-risk, current-exposure and coverage cards; refreshable immutable snapshots.
+- Versioned deterministic scoring with evidence IDs and duplicate suppression.
+- NOOA transaction analysis, relevant contract analysis and synthesis using PredictStrategy. Claims must match an approved evidence catalog.
+- Persisted jobs and real stage progress, shareable reports, JSON downloads, five-minute snapshot cache buckets and block revalidation.
+- SQLite/PostgreSQL repository adapters, Alembic migrations, persisted rate/budget counters and interrupted-job recovery.
+- Responsive React dashboard, real sample transactions, methodology/architecture pages and FastAPI OpenAPI docs.
+
+## Run locally
+
+Requires Python 3.12, [uv](https://docs.astral.sh/uv/), Node **22 LTS** (22.12+), npm and Make. On Windows, run development commands inside WSL.
 
 ```sh
-cp .env.example .env
+nvm install && nvm use       # if using nvm
+cp .env.example .env        # only if .env does not already exist
 make install
-# Two terminals:
-make backend
-make frontend
+make backend               # terminal 1: migrations, then API on localhost:8000
+make frontend              # terminal 2: dashboard on localhost:5173
 ```
 
-Open http://localhost:5173. API docs: http://localhost:8000/docs.
-Vite proxies /api to FastAPI on port 8000. The connectivity indicator makes an actual HTTP health request.
+Open [the dashboard](http://localhost:5173) or [API documentation](http://localhost:8000/docs). Vite proxies API requests to FastAPI. The connectivity badge checks the real API.
+
+To enable NOOA, put `OPENROUTER_API_KEY` and `OPENROUTER_MODEL=openrouter/auto` in the ignored root `.env`. `TRACEINTEL_OPENROUTER_*` aliases are also supported; use one naming style. No key is required for deterministic analysis: reports explicitly say interpretation is unavailable.
+
+An Etherscan v2 key enables supported explorer lookups. Set `TRACEINTEL_TRACES_ENABLED=true` only with a provider supporting callTracer. Archive state availability depends on the RPC provider.
+
+Never place secrets in frontend `VITE_*` variables. Neither keys nor authenticated RPC URLs are returned in reports.
+
+## Verify
 
 ```sh
-make check   # lint, formatting, type checks, tests, production frontend build
-make test
-curl http://localhost:8000/api/v1/health
+make check                 # backend/frontend lint, types, tests and production build
+make evaluate              # twelve offline evaluation cases, including real approval evidence
+cd frontend
+npx playwright install chromium
+npm run test:e2e            # browser checks without live analysis/model calls
+npx wrangler deploy --dry-run
 ```
 
-Settings use TRACEINTEL_ environment variables and validate at startup. Secrets stay in root .env (ignored). Never put provider keys in VITE_* variables: frontend variables are public. /api/v1/health is process liveness, not provider readiness.
+Opt-in checks use real providers and can incur model charges:
 
-## Structure and decisions
+```sh
+PYTHONPATH=backend uv run python scripts/verify_exposure_live.py  # RPC only
+PYTHONPATH=backend uv run python scripts/verify_nooa_live.py
+cd frontend
+TRACEINTEL_LIVE_E2E=1 TRACEINTEL_EXPECT_LIVE_AGENT=1 npm run test:e2e -- --grep approval
+```
 
-backend/app contains API routes, configuration and typed models. backend/tests holds offline checks. frontend/src separates pages, components, hooks and API access. docs and evals document architecture and evaluation contracts.
+CI runs backend tests against SQLite and PostgreSQL, deterministic evaluations, frontend lint/types/tests/build, browser checks, Cloudflare bundling and a Docker build. These workflows run on push/PR; local verification does not imply a GitHub-hosted run has occurred.
 
-Evidence → decoding → deterministic signals/scoring → NOOA interpretation → report.
-Agents cannot mutate facts or scores. Evidence IDs connect claims to sources. Missing data is a completeness limitation, never an automatic reduction in risk.
+## Architecture
 
-Planned persistence uses repository interfaces and migrations: SQLite for development/tests and PostgreSQL for production. Planned hosting is Cloudflare frontend plus Python/FastAPI Docker API. Workers compatibility is independent of backend progress.
+```mermaid
+flowchart LR
+  UI[React dashboard] --> API[FastAPI]
+  API --> Jobs[Persisted jobs / cache]
+  API --> RPC[Async chain acquisition]
+  RPC --> Facts[Immutable decoded evidence]
+  Facts --> Rules[Deterministic risk rules]
+  Facts --> Exposure[Current-state ERC-20 comparison]
+  Exposure --> NOOA[Restricted NOOA interpretation]
+  Exposure --> Report
+  Rules --> NOOA
+  NOOA --> Report[Cited report]
+  Facts --> Report
+  Rules --> Report
+  Report --> Store[Repository interface]
+  Store --> DB[(SQLite / PostgreSQL)]
+```
 
-See [architecture](docs/architecture.md), [milestones](docs/milestones.md) and [evaluations](evals/README.md).
+Blockchain facts and numerical scores are never generated by an LLM. Frozen models and serialized nested evidence preserve immutability. NOOA selects and orders approved claims and verification steps; altered claims or citations are rejected. Original evidence remains visible regardless of interpretation success.
+
+The API currently runs **one process**, with bounded concurrent jobs. Startup marks interrupted jobs retryable. Horizontal worker coordination would require a queue/lease design; running several API workers against this recovery implementation is unsupported.
+
+## Repository
+
+```text
+backend/app/
+  api/          routes, request protection, dependencies
+  blockchain/   RPC, decoding, metadata, contracts, proxies, traces
+  risk/         documented deterministic rules and scoring
+  agents/       NOOA roles, claim catalog and validation
+  models/       frozen Pydantic contracts
+  services/     pipeline and repository protocol
+  storage/      SQLAlchemy adapters and tables
+  evaluation/   offline evaluation runner
+backend/migrations/  Alembic schema history
+backend/tests/       deterministic, API, agent and storage tests
+frontend/src/        React pages, components, hooks, typed API
+frontend/worker/     Cloudflare asset/API proxy
+evals/cases/         recorded and synthetic evidence
+docs/               methodology, architecture, API and operations
+```
+
+## Deployment and limitations
+
+Target: Cloudflare frontend/API proxy → DigitalOcean Docker FastAPI → PostgreSQL. See [deployment](docs/deployment.md), [architecture](docs/architecture.md), [API](docs/api.md), [methodology](docs/methodology.md), [NOOA](docs/nooa.md) and [evaluation](evals/README.md).
+
+Historical risk and current exposure are separate; neither is an overall safety rating. Current state is a recorded snapshot, not continuous monitoring. See [exposure methodology](docs/exposure.md) for precise status semantics. Event patterns can be spoofed; emitted approval is not current allowance. Block-end state is not exact intra-transaction state. Explorer metadata is current. Custom proxies, arbitrary protocol semantics, full state-diff accounting and token pricing are not covered. Raw evidence is retained when decoding is unavailable. Missing traces mean internal movements are unknown.
+
+Screenshots are captured from the running application. [Redesigned report](docs/screenshots/exposure-dashboard.png), [Then → Now](docs/screenshots/exposure-comparison.png), [mobile exposure](docs/screenshots/exposure-mobile.png). [Approval report](docs/screenshots/approval-report.png) and [mobile report](docs/screenshots/report-mobile.png).

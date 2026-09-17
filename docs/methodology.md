@@ -19,3 +19,7 @@ Missing information never subtracts points. Completeness is reported separately 
 Failed transactions do not produce completed asset movements or approval events. Gas is charged for failed transactions. ERC721 token IDs are not fungible amounts. Event patterns can be spoofed; decoding does not attest token compliance. Emitted allowance is not necessarily the current allowance.
 
 Contract state is queried at block end, not the exact intra-block execution position. Explorer metadata is current, not historical. Proxy detection covers EIP-1967, not every custom pattern. Without traces, internal native movements and revert information are unavailable. No balance reconciliation or token-price valuation is claimed.
+
+## Current exposure is separate
+
+ERC-20 current-state comparisons do not alter this historical score. See [persistent exposure methodology](exposure.md) for status definitions, pinned current allowance queries, freshness and limitations.
