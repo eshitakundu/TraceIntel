@@ -1,10 +1,9 @@
 """Capture public, reproducible chain evidence; never reads or writes private keys."""
+
 import asyncio
-import json
 from pathlib import Path
 
 import httpx
-
 from app.blockchain.chains import chains
 from app.blockchain.rpc_client import RpcClient
 from app.blockchain.transaction_fetcher import fetch_transaction

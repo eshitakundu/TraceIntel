@@ -1,9 +1,11 @@
 import json
 from pathlib import Path
 
+from app.agents.validation import validate_selection
 from app.blockchain.decoder import decode_transaction
 from app.blockchain.event_decoder import APPROVAL
 from app.models.blockchain import RawTransaction
+from app.models.interpretation import AgentSelection, CitedClaim
 from app.risk.engine import evaluate
 
 
@@ -57,6 +59,55 @@ def run_cases() -> list[dict[str, object]]:
                 "evidence_references_valid": references_valid,
             }
         )
+    recorded = RawTransaction.model_validate_json(
+        Path("evals/cases/ethereum-approval.json").read_text()
+    )
+    decoded = decode_transaction(recorded)
+    risk = evaluate(decoded, ())
+    codes = sorted({signal.code for signal in risk.signals if signal.score})
+    passed = (
+        len(decoded.approvals) == 13
+        and sum(a.unlimited for a in decoded.approvals) == 2
+        and risk.score == 40
+        and codes == ["TOKEN_APPROVAL", "UNLIMITED_TOKEN_APPROVAL"]
+    )
+    results.append(
+        {
+            "case": "recorded Ethereum approval activity",
+            "passed": passed,
+            "approvals": len(decoded.approvals),
+            "score": risk.score,
+            "codes": codes,
+        }
+    )
+    claim = CitedClaim(id="known", text="Transaction success.", evidence_ids=("receipt:1",))
+    valid = AgentSelection(
+        summary=(claim,),
+        important_findings=(),
+        uncertainties=(),
+        recommended_checks=(),
+        confidence=0.5,
+    )
+    accepted = validate_selection(valid, (claim,)) == valid
+    rejected = 0
+    for field, value in (
+        ("text", "Transaction is safe."),
+        ("id", "invented"),
+        ("evidence_ids", ("invented",)),
+    ):
+        altered = valid.model_copy(update={"summary": (claim.model_copy(update={field: value}),)})
+        try:
+            validate_selection(altered, (claim,))
+        except ValueError:
+            rejected += 1
+    results.append(
+        {
+            "case": "agent grounding adversarial cases",
+            "passed": accepted and rejected == 3,
+            "valid_claim_accepted": accepted,
+            "unsupported_outputs_rejected": rejected,
+        }
+    )
     return results
 
 

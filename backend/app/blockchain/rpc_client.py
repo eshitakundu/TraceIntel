@@ -18,7 +18,19 @@ class RpcClient:
         self._semaphore = asyncio.Semaphore(8)
 
     async def call(self, method: str, params: list[Any]) -> Any:
-        if not method.startswith(("eth_get", "eth_call", "eth_chainId", "debug_trace")):
+        if method not in {
+            "eth_chainId",
+            "eth_blockNumber",
+            "eth_getTransactionByHash",
+            "eth_getTransactionReceipt",
+            "eth_getBlockByNumber",
+            "eth_getCode",
+            "eth_getStorageAt",
+            "eth_call",
+            "eth_getLogs",
+            "eth_getBalance",
+            "debug_traceTransaction",
+        }:
             raise RpcError("Only read-only RPC operations are permitted.")
         async with self._semaphore:
             for attempt in range(3):
