@@ -1,5 +1,9 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { watchReadiness, type ReadinessState } from "./readiness";
+import {
+  watchReadiness,
+  waitForReadiness,
+  type ReadinessState,
+} from "./readiness";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -99,4 +103,37 @@ it("ignores a late response after cancellation", async () => {
   resolve(healthy());
   await new Promise((done) => setTimeout(done, 0));
   expect(states).toEqual(["checking"]);
+});
+
+it("preflight resolves only after recovery and clears its timers", async () => {
+  vi.useFakeTimers();
+  const fetcher = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("asleep"))
+    .mockResolvedValueOnce(healthy());
+  vi.stubGlobal("fetch", fetcher);
+  const states: ReadinessState[] = [];
+  const pending = waitForReadiness(new AbortController().signal, (state) =>
+    states.push(state),
+  );
+  await vi.advanceTimersByTimeAsync(3000);
+  await expect(pending).resolves.toBeUndefined();
+  expect(states).toEqual(["checking", "waking", "connected"]);
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("cancelled preflight never retries or submits", async () => {
+  vi.useFakeTimers();
+  const fetcher = vi.fn().mockRejectedValue(new Error("asleep"));
+  vi.stubGlobal("fetch", fetcher);
+  const controller = new AbortController();
+  const outcome = waitForReadiness(controller.signal, () => {}).catch(
+    (error) => error,
+  );
+  await vi.advanceTimersByTimeAsync(0);
+  controller.abort();
+  await vi.runAllTimersAsync();
+  expect((await outcome).name).toBe("AbortError");
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(vi.getTimerCount()).toBe(0);
 });

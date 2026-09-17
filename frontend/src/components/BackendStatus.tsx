@@ -1,8 +1,18 @@
+import ActivityStatus from "./ActivityStatus";
 import { useOutletContext } from "react-router-dom";
 import type { useHealth } from "../hooks/useHealth";
 
 export default function BackendStatus() {
   const { state, retry } = useOutletContext<ReturnType<typeof useHealth>>();
+  if (state !== "unavailable")
+    return (
+      <ActivityStatus
+        title={
+          state === "waking" ? "Backend waking up…" : "Checking connection…"
+        }
+        description="Your saved analysis will load automatically when the backend is ready."
+      />
+    );
   return (
     <section className="panel">
       <p role="status">

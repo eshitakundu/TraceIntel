@@ -15,7 +15,7 @@ test("automatically recovers readiness and loads networks after a cold start", a
     ),
   );
   await page.goto("/");
-  await expect(page.getByText("Backend waking up…")).toBeVisible();
+  await expect(page.getByText("Backend waking up…").first()).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Analyze transaction →" }),
   ).toBeDisabled();
@@ -37,7 +37,7 @@ for (const chain of ["ethereum", "monad"]) {
       await page.route("**/api/v1/analyses", (route) => {
         submitted = route.request().postDataJSON();
         return route.fulfill({
-          status: 503,
+          status: 422,
           json: { detail: "Test submission captured" },
         });
       });
@@ -116,7 +116,7 @@ test("a saved report waits through a cold start and then loads without refresh",
     return route.fulfill({ json: fixture });
   });
   await page.goto("/reports/" + fixture.id);
-  await expect(page.getByText("Backend waking up…")).toBeVisible();
+  await expect(page.getByText("Backend waking up…").first()).toBeVisible();
   expect(reportRequests).toBe(0);
   ready = true;
   await expect(page.getByRole("heading", { name: "Then → Now" })).toBeVisible({

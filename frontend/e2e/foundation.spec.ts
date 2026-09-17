@@ -34,7 +34,7 @@ test("shows a real API failure and allows retry", async ({ page }) => {
   );
   await page.clock.install();
   await page.goto("/");
-  await expect(page.getByText("Backend waking up…")).toBeVisible();
+  await expect(page.getByText("Backend waking up…").first()).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Analyze transaction →" }),
   ).toBeDisabled();

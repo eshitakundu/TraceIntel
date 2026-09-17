@@ -7,6 +7,7 @@ export function useHealth() {
   useEffect(() => watchReadiness(setState), [attempt]);
   return {
     state,
+    markUnavailable: () => setState("unavailable"),
     retry: () => {
       setState("checking");
       setAttempt((value) => value + 1);

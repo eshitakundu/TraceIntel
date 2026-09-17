@@ -1,6 +1,13 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import { getChains, submitAnalysis } from "../api/analysis";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import {
+  getChains,
+  submitAnalysis,
+  isTemporaryApiError,
+} from "../api/analysis";
+import { waitForReadiness } from "../api/readiness";
+import type { useHealth } from "../hooks/useHealth";
+import ActivityStatus from "./ActivityStatus";
 import type { Chain } from "../types/report";
 
 export default function TransactionForm({ ready }: { ready: boolean }) {
@@ -10,6 +17,13 @@ export default function TransactionForm({ ready }: { ready: boolean }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
+  const { state, retry, markUnavailable } =
+    useOutletContext<ReturnType<typeof useHealth>>();
+  const [phase, setPhase] = useState<"checking" | "waking" | "submitting">(
+    "checking",
+  );
+  const submission = useRef<AbortController | null>(null);
+  useEffect(() => () => submission.current?.abort(), []);
   useEffect(() => {
     if (!ready) return;
     const controller = new AbortController();
@@ -28,22 +42,46 @@ export default function TransactionForm({ ready }: { ready: boolean }) {
     sample?: { chain: string; hash: string },
   ) {
     event?.preventDefault();
-    if (!ready || busy || !chains.length) return;
+    if (!ready || busy || submission.current || !chains.length) return;
     const value = (sample?.hash ?? hash).trim();
     if (!/^0x[0-9a-fA-F]{64}$/.test(value)) {
       setError("Enter a 0x-prefixed, 64-digit transaction hash.");
       return;
     }
+    const selectedChain = sample?.chain ?? chain;
+    setChain(selectedChain);
+    setHash(value);
+    const controller = new AbortController();
+    submission.current = controller;
+    setPhase("checking");
     setBusy(true);
     setError("");
+    let submitted = false;
     try {
-      const job = await submitAnalysis(sample?.chain ?? chain, value);
+      await waitForReadiness(controller.signal, (next) => {
+        if (next === "checking" || next === "waking") setPhase(next);
+      });
+      if (controller.signal.aborted) return;
+      setPhase("submitting");
+      submitted = true;
+      const job = await submitAnalysis(selectedChain, value, controller.signal);
       navigate("/analysis/" + job.id);
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Analysis could not start.",
-      );
-      setBusy(false);
+      if (controller.signal.aborted) return;
+      if (!submitted) markUnavailable();
+      if (isTemporaryApiError(error)) {
+        setError(
+          "The API connection failed before we could confirm your analysis. It may already have been accepted. Your hash is preserved; retry once the connection is restored.",
+        );
+        retry();
+      } else {
+        setError(
+          error instanceof Error ? error.message : "Analysis could not start.",
+        );
+      }
+    } finally {
+      submission.current = null;
+      if (!controller.signal.aborted) setBusy(false);
     }
   }
   return (
@@ -53,7 +91,7 @@ export default function TransactionForm({ ready }: { ready: boolean }) {
           <h2>Analyze a transaction</h2>
           <span className="badge">READ-ONLY</span>
         </div>
-        <form onSubmit={(event) => void analyze(event)}>
+        <form aria-busy={busy} onSubmit={(event) => void analyze(event)}>
           <div className="form-grid">
             <fieldset className="network-selector" disabled={busy || !ready}>
               <legend>Network</legend>
@@ -99,15 +137,50 @@ export default function TransactionForm({ ready }: { ready: boolean }) {
           <div className="form-bottom">
             <span>Public on-chain data. No wallet connection required.</span>
             <button disabled={busy || !ready || !chains.length}>
-              {busy ? "Starting analysis…" : "Analyze transaction →"}
+              {busy
+                ? "Please wait…"
+                : error
+                  ? "Retry analysis →"
+                  : "Analyze transaction →"}
             </button>
           </div>
-          {!ready && (
-            <p className="readiness-note">
-              Analysis becomes available automatically when the backend is
-              ready.
-            </p>
+          {busy && (
+            <ActivityStatus
+              title={
+                phase === "submitting"
+                  ? "Submitting transaction…"
+                  : phase === "waking"
+                    ? "Backend waking up…"
+                    : "Checking backend before submission…"
+              }
+              description={
+                phase === "submitting"
+                  ? "Waiting for a job ID. The analysis stages will appear as soon as the API accepts your request."
+                  : "Render may need time to wake after inactivity. Retrying automatically for up to about two minutes."
+              }
+            />
           )}
+          {!busy &&
+            !ready &&
+            (state === "unavailable" ? (
+              <div className="readiness-note">
+                <p>
+                  The backend could not be reached. Your input is preserved.
+                </p>
+                <button type="button" className="secondary" onClick={retry}>
+                  Retry backend connection
+                </button>
+              </div>
+            ) : (
+              <ActivityStatus
+                title={
+                  state === "waking"
+                    ? "Backend waking up…"
+                    : "Checking connection…"
+                }
+                description="Analysis will become available automatically when the backend is ready."
+              />
+            ))}
           {error && (
             <p role="alert" className="error">
               {error}

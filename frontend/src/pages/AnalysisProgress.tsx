@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { useHealth } from "../hooks/useHealth";
+import ActivityStatus from "../components/ActivityStatus";
 import BackendStatus from "../components/BackendStatus";
 import {
   Link,
@@ -64,6 +65,12 @@ export default function AnalysisProgress() {
       <div className="eyebrow">LIVE ANALYSIS</div>
       <h1>Following the evidence.</h1>
       <p className="hash">{job?.transaction_hash}</p>
+      {!error && !job?.error && (
+        <ActivityStatus
+          title={job?.stage ?? "Loading analysis progress…"}
+          description="Following the API's reported stage. Some on-chain checks can take a little time."
+        />
+      )}
       {error || job?.error ? (
         <div role="alert" className="panel">
           <h2>Analysis could not complete</h2>

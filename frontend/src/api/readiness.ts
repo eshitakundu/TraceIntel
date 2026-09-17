@@ -38,3 +38,41 @@ export function watchReadiness(onState: (state: ReadinessState) => void) {
     controller.abort();
   };
 }
+
+// Recheck immediately before a submission: a previously ready free service may sleep.
+export function waitForReadiness(
+  signal: AbortSignal,
+  onState: (state: ReadinessState) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    let stop: () => void = () => {};
+    const cleanup = () => {
+      stop();
+      signal.removeEventListener("abort", abort);
+    };
+    const abort = () => {
+      cleanup();
+      reject(signal.reason);
+    };
+    signal.addEventListener("abort", abort, { once: true });
+    stop = watchReadiness((state) => {
+      onState(state);
+      if (state === "connected") {
+        cleanup();
+        resolve();
+      }
+      if (state === "unavailable") {
+        cleanup();
+        reject(
+          new Error(
+            "The backend did not become ready within two minutes. Your transaction has not been submitted. Please retry the connection.",
+          ),
+        );
+      }
+    });
+  });
+}

@@ -1190,3 +1190,50 @@ summary:focus-visible {
     margin-block: 14px;
   }
 }
+
+.activity-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin: 18px 0 0;
+  border: 1px solid #567d6c;
+  border-radius: 6px;
+  background: #172e25;
+  color: #d8f5e7;
+}
+.activity-status strong {
+  font-size: 14px;
+}
+.activity-status p {
+  margin: 4px 0 0;
+  color: #c0d6ca;
+  font-size: 12px;
+}
+.activity-spinner {
+  flex: 0 0 18px;
+  height: 18px;
+  margin-top: 3px;
+  border: 2px solid #526d60;
+  border-top-color: #a1f1d2;
+  border-radius: 50%;
+  animation: activity-spin 0.85s linear infinite;
+}
+.activity-elapsed {
+  margin-left: auto;
+  font:
+    12px ui-monospace,
+    monospace;
+  white-space: nowrap;
+}
+@keyframes activity-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .activity-spinner {
+    animation: none;
+    border-color: #a1f1d2;
+  }
+}
