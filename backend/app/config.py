@@ -15,3 +15,10 @@ class Settings(BaseSettings):
     openrouter_api_key: SecretStr = SecretStr("")
     openrouter_model: str = ""
     rpc_timeout_seconds: float = Field(default=15, gt=0, le=60)
+
+    explorer_api_key: SecretStr = SecretStr("")
+    traces_enabled: bool = False
+    max_concurrent_analyses: int = Field(default=2, ge=1, le=8)
+    requests_per_hour: int = Field(default=20, ge=1, le=1000)
+    daily_analyses: int = Field(default=100, ge=1, le=10000)
+    daily_llm_analyses: int = Field(default=20, ge=0, le=1000)
