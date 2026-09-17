@@ -1,7 +1,7 @@
 import json
 
+from app.blockchain.calldata import decode_calldata
 from app.blockchain.event_decoder import decode_events
-from app.blockchain.signature_resolver import resolve
 from app.models.blockchain import (
     Coverage,
     DecodedEvidence,
@@ -27,6 +27,7 @@ def decode_transaction(raw: RawTransaction) -> DecodedEvidence:
     calldata = tx.get("input", "0x")
     target = tx.get("to")
     created = receipt.get("contractAddress")
+    signature, arguments = decode_calldata(calldata) if target else (None, None)
     transaction = Transaction(
         hash=raw.tx_hash,
         sender=tx["from"].lower(),
@@ -42,7 +43,8 @@ def decode_transaction(raw: RawTransaction) -> DecodedEvidence:
         block_hash=receipt["blockHash"],
         timestamp=int(block["timestamp"], 16),
         selector=calldata[:10] if len(calldata) >= 10 else None,
-        function=resolve(calldata) if target else None,
+        function=signature,
+        arguments_json=arguments,
         calldata=calldata,
         evidence_ids=(f"{prefix}:tx", f"{prefix}:receipt", f"{prefix}:block"),
     )

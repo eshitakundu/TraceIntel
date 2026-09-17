@@ -8,10 +8,12 @@ import httpx
 
 from app.agents.catalog import build_catalog
 from app.agents.service import interpret
+from app.blockchain.calldata import decode_calldata
 from app.blockchain.chains import chains
 from app.blockchain.contract_inspector import inspect_contract
 from app.blockchain.decoder import decode_transaction
 from app.blockchain.rpc_client import RpcClient, RpcError
+from app.blockchain.token_metadata import enrich_tokens
 from app.blockchain.traces import fetch_traces
 from app.blockchain.transaction_fetcher import TransactionUnavailable, fetch_transaction
 from app.config import Settings
@@ -43,7 +45,7 @@ class AnalysisService:
         config_id = hashlib.sha256(
             f"{self.settings.openrouter_model}:{bool(self.settings.openrouter_api_key.get_secret_value())}".encode()
         ).hexdigest()[:12]
-        key = f"{request.chain}:{request.transaction_hash.lower()}:v1:{day}:{config_id}"
+        key = f"{request.chain}:{request.transaction_hash.lower()}:v1.1:{day}:{config_id}"
         job = AnalysisJob(
             id=str(uuid4()),
             chain=request.chain,
@@ -127,7 +129,22 @@ class AnalysisService:
                 for address in addresses[:16]
             )
         )
+        decoded = await enrich_tokens(decoded, rpc, f"{job.chain}:{job.transaction_hash}")
         contracts = tuple(item[0] for item in results)
+        target_contract = next(
+            (c for c in contracts if c.address == decoded.transaction.recipient), None
+        )
+        if target_contract and target_contract.abi_json:
+            function, arguments = decode_calldata(
+                decoded.transaction.calldata, target_contract.abi_json
+            )
+            decoded = decoded.model_copy(
+                update={
+                    "transaction": decoded.transaction.model_copy(
+                        update={"function": function, "arguments_json": arguments}
+                    )
+                }
+            )
         contract_evidence = tuple(e for item in results for e in item[1])
         coverage = decoded.coverage + tuple(c for item in results for c in item[2])
         if len(addresses) > 16:

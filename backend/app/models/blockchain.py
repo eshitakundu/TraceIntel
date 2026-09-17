@@ -51,6 +51,7 @@ class Transaction(FrozenModel):
     timestamp: int
     selector: str | None
     function: str | None
+    arguments_json: str | None = None
     calldata: str
     evidence_ids: tuple[str, ...]
 

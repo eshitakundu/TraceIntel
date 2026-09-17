@@ -17,6 +17,7 @@ def test_validation_and_report_lifecycle() -> None:
         "eth_getTransactionReceipt": json.loads(raw.receipt_json),
         "eth_getBlockByNumber": json.loads(raw.block_json),
         "eth_getCode": "0x",
+        "eth_call": "0x",
     }
 
     def handler(request: httpx.Request) -> httpx.Response:
