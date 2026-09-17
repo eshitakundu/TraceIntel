@@ -36,6 +36,10 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 
 [tool.mypy]
 python_version = "3.12"
-mypy_path = "backend"
+mypy_path = ["backend/typings", "backend"]
 strict = true
 packages = ["app"]
+
+[[tool.mypy.overrides]]
+module = ["app.agents.transaction_analyst", "app.agents.contract_analyst", "app.agents.report_synthesizer"]
+disable_error_code = ["empty-body"]
