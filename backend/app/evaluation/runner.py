@@ -1,10 +1,13 @@
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.agents.validation import validate_selection
 from app.blockchain.decoder import decode_transaction
 from app.blockchain.event_decoder import APPROVAL
+from app.blockchain.exposure_analyzer import compare_permission
 from app.models.blockchain import RawTransaction
+from app.models.exposure import CurrentPermissionState, HistoricalPermission
 from app.models.interpretation import AgentSelection, CitedClaim
 from app.risk.engine import evaluate
 
@@ -108,6 +111,36 @@ def run_cases() -> list[dict[str, object]]:
             "unsupported_outputs_rejected": rejected,
         }
     )
+    transitions = json.loads(Path("evals/cases/exposure-transitions.json").read_text())["cases"]
+    for case in transitions:
+        h = HistoricalPermission(
+            token="0x" + "a" * 40,
+            owner="0x" + "b" * 40,
+            spender="0x" + "c" * 40,
+            allowance_raw=case["historical"],
+            unlimited=int(case["historical"]) == 2**256 - 1,
+            block_number=1,
+            timestamp=1,
+            evidence_ids=("then:approval",),
+        )
+        current = CurrentPermissionState(
+            checked_at=datetime(2026, 9, 17, tzinfo=UTC),
+            allowance_raw=case["current"],
+            balance_raw="0",
+            spender_has_code=False,
+            evidence_ids=("now:allowance",),
+        )
+        item = compare_permission("exposure", h, current)
+        results.append(
+            {
+                "case": "exposure: " + case["name"],
+                "passed": item.status == case["status"]
+                and item.permission_active is case["active"]
+                and item.evidence_ids == ("then:approval", "now:allowance"),
+                "status": item.status,
+                "permission_active": item.permission_active,
+            }
+        )
     return results
 
 

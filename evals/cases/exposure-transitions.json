@@ -1,0 +1,47 @@
+{
+  "provenance": "Synthetic ERC-20 snapshot comparisons; raw quantities are exact base units.",
+  "cases": [
+    {
+      "name": "unchanged unlimited",
+      "historical": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+      "current": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+      "status": "ACTIVE",
+      "active": true
+    },
+    {
+      "name": "reduced finite",
+      "historical": "1000",
+      "current": "200",
+      "status": "PARTIALLY_ACTIVE",
+      "active": true
+    },
+    {
+      "name": "zero current",
+      "historical": "1000",
+      "current": "0",
+      "status": "REVOKED",
+      "active": false
+    },
+    {
+      "name": "increased allowance",
+      "historical": "1000",
+      "current": "2000",
+      "status": "SUPERSEDED",
+      "active": true
+    },
+    {
+      "name": "unavailable RPC",
+      "historical": "1000",
+      "current": null,
+      "status": "UNKNOWN",
+      "active": null
+    },
+    {
+      "name": "historical zero remains zero",
+      "historical": "0",
+      "current": "0",
+      "status": "REVOKED",
+      "active": false
+    }
+  ]
+}

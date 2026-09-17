@@ -1,4 +1,5 @@
 from app.models.blockchain import Contract, Coverage, DecodedEvidence
+from app.models.exposure import ExposureAnalysis
 from app.models.interpretation import CitedClaim
 from app.models.risk import RiskAssessment
 
@@ -8,6 +9,7 @@ def build_catalog(
     risk: RiskAssessment,
     contracts: tuple[Contract, ...],
     coverage: tuple[Coverage, ...],
+    exposure: ExposureAnalysis | None = None,
 ) -> tuple[CitedClaim, ...]:
     tx = decoded.transaction
     claims = [
@@ -46,6 +48,16 @@ def build_catalog(
             claims.append(
                 CitedClaim(
                     id=f"limitation:{index}", text=f"{item.area}: {item.reason}", evidence_ids=()
+                )
+            )
+    if exposure:
+        for index, permission in enumerate(exposure.permissions):
+            claims.append(
+                CitedClaim(
+                    id=f"exposure:{index}",
+                    text=f"{permission.historical.token} permission: {permission.status}. "
+                    f"{permission.summary}",
+                    evidence_ids=permission.evidence_ids,
                 )
             )
     return tuple(claims)

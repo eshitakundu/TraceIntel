@@ -12,6 +12,7 @@ from app.blockchain.calldata import decode_calldata
 from app.blockchain.chains import chains
 from app.blockchain.contract_inspector import inspect_contract
 from app.blockchain.decoder import decode_transaction
+from app.blockchain.exposure_analyzer import analyze_exposure
 from app.blockchain.rpc_client import RpcClient, RpcError
 from app.blockchain.token_metadata import enrich_tokens
 from app.blockchain.traces import fetch_traces
@@ -43,9 +44,12 @@ class AnalysisService:
             raise CapacityError("Analysis queue is full. Please retry later.")
         day = datetime.now(UTC).strftime("%Y-%m-%d")
         config_id = hashlib.sha256(
-            f"{self.settings.openrouter_model}:{bool(self.settings.openrouter_api_key.get_secret_value())}".encode()
+            f"{self.settings.openrouter_model}:{bool(self.settings.openrouter_api_key.get_secret_value())}:{self.settings.traces_enabled}:{bool(self.settings.explorer_api_key.get_secret_value())}".encode()
         ).hexdigest()[:12]
-        key = f"{request.chain}:{request.transaction_hash.lower()}:v1.1:{day}:{config_id}"
+        snapshot_bucket = int(datetime.now(UTC).timestamp()) // 300
+        key = (
+            f"{request.chain}:{request.transaction_hash.lower()}:v1.2:{snapshot_bucket}:{config_id}"
+        )
         job = AnalysisJob(
             id=str(uuid4()),
             chain=request.chain,
@@ -181,8 +185,11 @@ class AnalysisService:
         )
         job = await self.stage(job, "Evaluating deterministic signals")
         risk = evaluate(decoded, contracts)
+        job = await self.stage(job, "Checking current approval exposure")
+        exposure = await analyze_exposure(decoded, rpc, f"{job.chain}:{job.transaction_hash}")
+        coverage += (exposure.coverage,)
         job = await self.stage(job, "Running NOOA intelligence analysis")
-        catalog = build_catalog(decoded, risk, contracts, coverage)
+        catalog = build_catalog(decoded, risk, contracts, coverage, exposure)
         interpretation = Interpretation(status="unavailable", reason="Model/key is not configured.")
         if self.settings.openrouter_api_key.get_secret_value() and self.settings.openrouter_model:
             day = datetime.now(UTC).strftime("%Y-%m-%d")
@@ -206,6 +213,7 @@ class AnalysisService:
             coverage=coverage,
             risk=risk,
             interpretation=interpretation,
+            exposure=exposure,
         )
         await self.repository.save_report(report)
         await self.repository.update_job(

@@ -3,13 +3,14 @@ from typing import Literal
 
 from app.models.base import FrozenModel
 from app.models.blockchain import Contract, Coverage, DecodedEvidence, TxHash
+from app.models.exposure import ExposureAnalysis
 from app.models.interpretation import Interpretation
 from app.models.risk import RiskAssessment
 
 
 class Report(FrozenModel):
     id: str
-    schema_version: str = "1.0.0"
+    schema_version: str = "1.1.0"
     created_at: datetime
     chain: str
     transaction_hash: TxHash
@@ -19,6 +20,7 @@ class Report(FrozenModel):
     coverage: tuple[Coverage, ...]
     risk: RiskAssessment
     interpretation: Interpretation
+    exposure: ExposureAnalysis | None = None
 
 
 class AnalysisRequest(FrozenModel):
