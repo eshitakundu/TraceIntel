@@ -1,6 +1,7 @@
 import asyncio
 
 from nooa.unifiedllm.registry import get_llm_client
+from nooa.unifiedllm.retry_config import RetryConfig
 
 from app.agents.contract_analyst import ContractAnalyst
 from app.agents.report_synthesizer import ReportSynthesizer
@@ -15,12 +16,14 @@ async def interpret(
 ) -> Interpretation:
     if not settings.openrouter_api_key.get_secret_value() or not settings.openrouter_model:
         return Interpretation(status="unavailable", reason="NOOA model/key is not configured.")
+    llm = None
     try:
         llm = get_llm_client(
-            "openrouter/" + settings.openrouter_model.removeprefix("openrouter/"),
+            "openrouter/" + settings.openrouter_model,
             api_key=settings.openrouter_api_key.get_secret_value(),
             timeout=25,
             num_retries=0,
+            retry_config=RetryConfig(max_retries=0, rate_limit_extra_retries=0),
         )
         async with asyncio.timeout(90):
             transaction = validate_selection(
@@ -45,3 +48,6 @@ async def interpret(
         return Interpretation(
             status="unavailable", reason="NOOA interpretation failed or timed out."
         )
+    finally:
+        if llm is not None:
+            await llm.aclose()
