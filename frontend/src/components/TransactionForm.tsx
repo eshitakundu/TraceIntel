@@ -101,6 +101,11 @@ export default function TransactionForm() {
           {[
             {
               chain: "ethereum",
+              name: "Approval activity",
+              hash: "0xe7ac5477adad86fe9f70854da18b0a182b878773381421418d5bf1a69514645f",
+            },
+            {
+              chain: "ethereum",
               name: "Ethereum",
               hash: "0xa5e6aec48fffd1c35d8410e2e81b63e1fca740bde922f5f2d4b7da50f65f532f",
             },
@@ -112,7 +117,7 @@ export default function TransactionForm() {
           ].map((sample) => (
             <button
               className="sample"
-              key={sample.chain}
+              key={sample.hash}
               disabled={busy}
               onClick={() => void analyze(undefined, sample)}
             >

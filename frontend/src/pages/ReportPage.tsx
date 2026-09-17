@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { getReport } from "../api/analysis";
 import type { Report } from "../types/report";
 import EvidenceLinks from "../components/EvidenceLinks";
+import ExposurePanel, { ExposureMetrics } from "../components/ExposurePanel";
 import {
   Approvals,
   AssetMovements,
@@ -73,6 +74,9 @@ export default function ReportPage() {
             {report.chain.toUpperCase()} / TRANSACTION REPORT
           </div>
           <h1>Transaction intelligence.</h1>
+          <p className="report-subtitle">
+            What changed then. What remains now.
+          </p>
           <code className="hash">{report.transaction_hash}</code>
           <div className="report-meta">
             <span
@@ -86,16 +90,8 @@ export default function ReportPage() {
             <span>{new Date(tx.timestamp * 1000).toLocaleString()}</span>
           </div>
         </div>
-        <aside className={"risk-meter " + report.risk.level}>
-          <span className="label">OBSERVED INDICATOR SCORE</span>
-          <strong>
-            {report.risk.score}
-            <small>/ 100</small>
-          </strong>
-          <span>{report.risk.level.toUpperCase()}</span>
-          <small>Not a safety rating</small>
-        </aside>
       </section>
+      <ExposureMetrics report={report} />
       <div className="report-actions">
         <a
           className="button secondary"
@@ -116,21 +112,10 @@ export default function ReportPage() {
         </a>
         <span role="status">{copied}</span>
       </div>
-      <div className="coverage-banner">
-        <strong>
-          {gaps.length
-            ? "Evidence coverage is incomplete"
-            : "Configured checks completed"}
-        </strong>
-        <span>
-          {gaps.length} partial or unavailable checks. Missing information never
-          establishes safety.
-        </span>
-        <a href="#coverage">Review coverage ↓</a>
-      </div>
       <div className="report-layout">
         <nav className="report-nav" aria-label="Report sections">
           {[
+            "exposure",
             "overview",
             "movements",
             "approvals",
@@ -146,6 +131,7 @@ export default function ReportPage() {
           ))}
         </nav>
         <div className="report-content">
+          <ExposurePanel report={report} />
           <section className="report-section" id="overview">
             <div className="section-heading">
               <h2>What happened</h2>
@@ -183,6 +169,14 @@ export default function ReportPage() {
               <dt>Nonce</dt>
               <dd>{tx.nonce}</dd>
             </dl>
+            {tx.arguments_json && (
+              <details>
+                <summary>Decoded calldata arguments</summary>
+                <pre className="argument-json">
+                  {JSON.stringify(JSON.parse(tx.arguments_json), null, 2)}
+                </pre>
+              </details>
+            )}
             <EvidenceLinks ids={tx.evidence_ids} />
           </section>
           <AssetMovements report={report} />
@@ -219,7 +213,9 @@ export default function ReportPage() {
                 </ul>
                 <h3>Uncertainty</h3>
                 {interpretation.uncertainties.map((claim) => (
-                  <p key={claim.id}>{claim.text}</p>
+                  <p key={claim.id}>
+                    {claim.text} <EvidenceLinks ids={claim.evidence_ids} />
+                  </p>
                 ))}
               </>
             ) : (
@@ -231,6 +227,19 @@ export default function ReportPage() {
           </section>
           <section className="report-section" id="coverage">
             <h2>Completeness & limitations</h2>
+            <div className="coverage-banner">
+              <strong>
+                {gaps.length
+                  ? "Evidence coverage is incomplete"
+                  : "Configured checks completed"}
+              </strong>
+              <span>
+                {gaps.length} partial or unavailable checks. Missing information
+                never establishes safety.
+              </span>
+              <a href="#coverage">Review coverage ↓</a>
+            </div>
+
             {report.coverage.map((item, index) => (
               <div className="coverage-row" key={index}>
                 <span className={"badge " + item.status}>
@@ -246,7 +255,7 @@ export default function ReportPage() {
           <RawEvidence report={report} />
           <p className="note">
             Created {new Date(report.created_at).toLocaleString()} · Schema
-            1.0.0 · Stored report
+            {report.schema_version} · Stored report
           </p>
         </div>
       </div>

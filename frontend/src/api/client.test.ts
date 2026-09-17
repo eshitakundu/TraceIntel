@@ -5,17 +5,15 @@ afterEach(() => vi.unstubAllGlobals());
 it("checks the backend response contract", async () => {
   vi.stubGlobal(
     "fetch",
-    vi
-      .fn()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            status: "ok",
-            service: "traceintel-api",
-            version: "0.1.0",
-          }),
-        ),
+    vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          status: "ok",
+          service: "traceintel-api",
+          version: "0.1.0",
+        }),
       ),
+    ),
   );
   expect((await getHealth()).status).toBe("ok");
 });

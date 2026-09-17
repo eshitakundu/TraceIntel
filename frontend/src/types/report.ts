@@ -25,6 +25,7 @@ export interface Transaction {
   timestamp: number;
   selector: string | null;
   function: string | null;
+  arguments_json: string | null;
   calldata: string;
   evidence_ids: string[];
 }
@@ -81,6 +82,8 @@ export interface AgentSelection {
   confidence: number;
 }
 export interface Report {
+  schema_version: string;
+  exposure?: ExposureAnalysis | null;
   id: string;
   created_at: string;
   chain: string;
@@ -124,4 +127,45 @@ export interface Chain {
   chain_id: number;
   native_symbol: string;
   explorer_url: string;
+}
+
+export interface CurrentPermissionState {
+  allowance_raw: string | null;
+  balance_raw: string | null;
+  spender_has_code: boolean | null;
+  symbol: string | null;
+  name: string | null;
+  decimals: number | null;
+  block_number: number | null;
+  block_hash: string | null;
+  block_timestamp: number | null;
+  checked_at: string;
+  errors: string[];
+  evidence_ids: string[];
+}
+export interface PersistentExposure {
+  id: string;
+  historical: {
+    token: string;
+    owner: string;
+    spender: string;
+    allowance_raw: string;
+    unlimited: boolean;
+    block_number: number;
+    timestamp: number;
+    evidence_ids: string[];
+  };
+  current: CurrentPermissionState;
+  status: "ACTIVE" | "PARTIALLY_ACTIVE" | "REVOKED" | "SUPERSEDED" | "UNKNOWN";
+  permission_active: boolean | null;
+  summary: string;
+  evidence_ids: string[];
+}
+export interface ExposureAnalysis {
+  version: string;
+  checked_at: string;
+  permissions: PersistentExposure[];
+  evidence: Evidence[];
+  coverage: Coverage;
+  limitations: string[];
 }

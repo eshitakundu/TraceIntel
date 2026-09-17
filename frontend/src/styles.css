@@ -704,3 +704,11 @@ td small {
     align-items: flex-start;
   }
 }
+
+.argument-json {
+  overflow: auto;
+  max-height: 350px;
+  font-size: 12px;
+  padding: 16px;
+  background: #091217;
+}

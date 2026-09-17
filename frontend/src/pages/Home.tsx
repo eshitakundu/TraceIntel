@@ -5,77 +5,122 @@ export default function Home() {
   const { state, retry } = useHealth();
   return (
     <>
-      <div className="eyebrow">
-        <span className="dot" /> EVM TRANSACTION INTELLIGENCE
-      </div>
-      <section className="hero">
-        <div>
-          <h1>
-            Follow the transaction.
-            <br />
-            <span>Understand the evidence.</span>
-          </h1>
-          <p>
-            On-chain facts, deterministic risk signals, and traceable
-            interpretation. Understand what moved, who received permission, and
-            what remains unknown.
-          </p>
-        </div>
-        <aside className="status-card">
-          <span className="label">SYSTEM STATUS</span>
-          <strong className={state}>
-            {state === "online"
-              ? "API connected"
-              : state === "checking"
-                ? "Checking connection…"
-                : "API unavailable"}
-          </strong>
-          <small>Live health check · FastAPI</small>
+      <div className="workspace-bar">
+        <span className="eyebrow">
+          <span className="dot" /> TRANSACTION + EXPOSURE INTELLIGENCE
+        </span>
+        <span className={"connection-pill " + state}>
+          {state === "online"
+            ? "API connected"
+            : state === "checking"
+              ? "Checking connection…"
+              : "API unavailable"}
           {state === "offline" && (
             <button onClick={retry}>Retry connection</button>
           )}
+        </span>
+      </div>
+      <section className="hero intelligence-hero">
+        <div className="hero-copy">
+          <span className="hero-kicker">
+            THE TRANSACTION IS ONLY THE BEGINNING
+          </span>
+          <h1>
+            Trace what happened.
+            <br />
+            <span>See what remains.</span>
+          </h1>
+          <p>
+            Understand a historical transaction and check whether its token
+            spending permissions are still active. One report. Two points in
+            time.
+          </p>
+          <div className="trust-strip">
+            <span>◈ Public on-chain evidence</span>
+            <span>↗ Read-only analysis</span>
+            <span>No wallet connection</span>
+          </div>
+        </div>
+        <aside
+          className="time-lens"
+          aria-label="Historical analysis and current exposure"
+        >
+          <div className="lens-heading">
+            <span className="label">TWO LENSES. ONE INVESTIGATION.</span>
+            <span className="lens-orbit">◈</span>
+          </div>
+          <div className="lens-step">
+            <span className="time-node">01</span>
+            <div>
+              <span className="label">THEN · TRANSACTION</span>
+              <h3>What permission was created?</h3>
+              <p>Decode approvals, movements and historical risk.</p>
+            </div>
+          </div>
+          <div className="lens-connector">
+            <span /> Follow the permission <span />
+          </div>
+          <div className="lens-step now">
+            <span className="time-node">02</span>
+            <div>
+              <span className="label">NOW · CURRENT STATE</span>
+              <h3>Does it still exist?</h3>
+              <p>Read the current allowance and owner balance.</p>
+            </div>
+          </div>
+          <div className="lens-foot">
+            Evidence at both ends. Unknowns stay visible.
+          </div>
         </aside>
       </section>
       <TransactionForm />
-      <section className="pipeline-section">
-        <div className="section-heading">
-          <h2>From transaction to understanding</h2>
-          <span className="label">THE PIPELINE</span>
+      <section className="product-difference">
+        <div>
+          <span className="eyebrow">BEYOND THE TRANSACTION RECEIPT</span>
+          <h2>
+            A completed transaction.
+            <br />
+            An ongoing permission?
+          </h2>
+          <p>
+            An approval can outlive the action that created it. TraceIntel
+            connects the historical event to a fresh, block-specific allowance
+            check.
+          </p>
         </div>
-        <div className="pipeline">
-          {["Acquire", "Decode", "Evidence", "Rules", "NOOA", "Report"].map(
-            (label, index) => (
-              <div key={label}>
-                <small>0{index + 1}</small>
-                <strong>{label}</strong>
-              </div>
-            ),
-          )}
+        <div className="feature-grid">
+          <article>
+            <span className="feature-icon">↗</span>
+            <h3>Historical facts</h3>
+            <p>
+              What moved, who gained permission and which indicators triggered.
+            </p>
+          </article>
+          <article>
+            <span className="feature-icon">◉</span>
+            <h3>Persistent exposure</h3>
+            <p>
+              Active, reduced, inactive or changed allowances, with explicit
+              unknowns.
+            </p>
+          </article>
+          <article>
+            <span className="feature-icon">⇄</span>
+            <h3>Then vs now</h3>
+            <p>
+              Original amounts beside current state. Historical risk stays
+              separate.
+            </p>
+          </article>
+          <article>
+            <span className="feature-icon">⌁</span>
+            <h3>Traceable interpretation</h3>
+            <p>
+              NOOA organizes verified claims with links back to their evidence.
+            </p>
+          </article>
         </div>
       </section>
-      <div className="principles">
-        <article>
-          <h3>Facts stay facts</h3>
-          <p>
-            Blockchain evidence and numerical risk scores come from
-            deterministic Python code.
-          </p>
-        </article>
-        <article>
-          <h3>Every claim has a source</h3>
-          <p>
-            Restricted NOOA interpretations retain evidence IDs. Unsupported
-            claims are rejected.
-          </p>
-        </article>
-        <article>
-          <h3>Unknown stays visible</h3>
-          <p>
-            Missing provider data is a coverage limitation, never evidence of
-            safety.
-          </p>
-        </article>
-      </div>
     </>
   );
 }

@@ -9,6 +9,7 @@ const stages = [
   "Decoding calldata and event logs",
   "Inspecting contracts",
   "Evaluating deterministic signals",
+  "Checking current approval exposure",
   "Running NOOA intelligence analysis",
   "Generating report",
   "Complete",

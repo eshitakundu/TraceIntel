@@ -47,6 +47,25 @@ export default function Documentation({
             Repeated logs cannot multiply a rule. Bands: 0 minimal, 1–19 low,
             20–49 moderate, 50–79 high, 80–100 critical.
           </p>
+          <h2>Historical risk and current exposure</h2>
+          <p>
+            The historical score describes the original transaction. Exposure is
+            a separate deterministic comparison of ERC-20 approval events with
+            allowance, owner balance and spender bytecode at a recorded current
+            block. It never changes the historical score.
+          </p>
+          <p>
+            Active means the amount matches; partially active means it decreased
+            but remains positive. Revoked means zero current allowance, without
+            inferring why. Superseded means a later event or increased current
+            amount replaced the historical amount. Unknown means allowance could
+            not be verified. Superseded can still be active.
+          </p>
+          <p>
+            Refresh uses a five-minute cache window. Saved reports are immutable
+            snapshots, not continuous monitoring. Zero balance and absent
+            bytecode do not revoke permission.
+          </p>
           <h2>Completeness is independent</h2>
           <p>
             Unavailable RPC, explorer, ABI, trace, and contract data is shown
@@ -72,7 +91,8 @@ export default function Documentation({
         <>
           <p>
             Blockchain evidence → deterministic decoding → risk signals and
-            scoring → NOOA interpretation → report.
+            scoring → current-state exposure comparison → NOOA interpretation →
+            report.
           </p>
           <h2>Immutable contracts</h2>
           <p>

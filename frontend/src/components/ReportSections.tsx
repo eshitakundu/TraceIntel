@@ -1,3 +1,4 @@
+import { formatUnits } from "../api/format";
 import type { Report } from "../types/report";
 import EvidenceLinks from "./EvidenceLinks";
 
@@ -41,9 +42,9 @@ export function AssetMovements({ report }: { report: Report }) {
                     </code>
                   </td>
                   <td className="amount">
-                    {movement.amount_raw}
+                    {formatUnits(movement.amount_raw, movement.decimals)}
                     <small>
-                      raw units
+                      {movement.decimals === null ? "raw units" : "token units"}
                       {movement.decimals !== null &&
                         " · " + movement.decimals + " decimals"}
                     </small>
@@ -177,20 +178,22 @@ export function RawEvidence({ report }: { report: Report }) {
         Raw evidence{" "}
         <span className="count">{report.decoded.evidence.length}</span>
       </h2>
-      {report.decoded.evidence.map((evidence) => (
-        <details
-          className="raw-evidence"
-          id={"evidence-" + encodeURIComponent(evidence.id)}
-          key={evidence.id}
-        >
-          <summary>
-            <span>{evidence.description}</span>
-            <code>{evidence.id.split(":").slice(2).join(":")}</code>
-          </summary>
-          <p>{evidence.source}</p>
-          <pre>{JSON.stringify(JSON.parse(evidence.data_json), null, 2)}</pre>
-        </details>
-      ))}
+      {[...report.decoded.evidence, ...(report.exposure?.evidence ?? [])].map(
+        (evidence) => (
+          <details
+            className="raw-evidence"
+            id={"evidence-" + evidence.id}
+            key={evidence.id}
+          >
+            <summary>
+              <span>{evidence.description}</span>
+              <code>{evidence.id.split(":").slice(2).join(":")}</code>
+            </summary>
+            <p>{evidence.source}</p>
+            <pre>{JSON.stringify(JSON.parse(evidence.data_json), null, 2)}</pre>
+          </details>
+        ),
+      )}
     </section>
   );
 }
