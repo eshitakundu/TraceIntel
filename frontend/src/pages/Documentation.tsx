@@ -1,0 +1,7 @@
+export default function Documentation({ kind }: { kind: 'methodology' | 'architecture' }) {
+  return <article className="document"><div className="eyebrow">TRACEINTEL / DESIGN CONTRACT</div>
+    <h1>{kind === 'methodology' ? 'Evidence before interpretation.' : 'A deliberate separation.'}</h1>
+    {kind === 'methodology' ? <><p>Risk indicators are not proof of maliciousness. The deterministic risk engine is planned; no scoring claims are made by this foundation release.</p><h2>Completeness is independent</h2><p>Unavailable RPC, explorer, ABI, trace, and contract data must be shown explicitly. Missing data must not silently lower a risk score.</p><h2>Reproducible evaluation</h2><p>Known transaction cases will check extraction, signals, scoring stability, evidence citations, and rejection of unsupported agent claims.</p></> :
+      <><p>Blockchain evidence → deterministic decoding → risk signals and scoring → NOOA interpretation → report.</p><h2>Immutable contracts</h2><p>Pydantic contracts will carry stable evidence IDs across all stages. Agent interpretations cannot overwrite deterministic facts.</p><h2>Independent storage</h2><p>SQLite for development and PostgreSQL for production will sit behind repository interfaces, with schema changes managed through migrations.</p><h2>Deployment</h2><p>A normal Python 3.12 FastAPI backend and a React frontend. Cloudflare frontend hosting and a Docker API are the intended baseline; Python Worker compatibility is a separate investigation.</p></>}
+  </article>
+}
