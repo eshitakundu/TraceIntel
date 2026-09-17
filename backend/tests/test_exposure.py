@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -50,15 +51,22 @@ def test_exposure_transition_golden(case: dict[str, Any]) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("failure", ["none", "balance", "allowance", "reorg", "block"])
-async def test_current_state_reads_are_pinned_and_failures_are_explicit(failure: str) -> None:
+@pytest.mark.parametrize("failure", ["none", "balance", "allowance", "reorg", "block", "timeout"])
+async def test_current_state_reads_are_pinned_and_failures_are_explicit(
+    failure: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     raw = RawTransaction.model_validate_json(RECORDED)
     decoded = decode_transaction(raw)
     before = decoded.model_dump_json()
     risk = evaluate(decoded, ())
     calls: list[dict[str, Any]] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    if failure == "timeout":
+        monkeypatch.setattr("app.blockchain.exposure_analyzer.CURRENT_STATE_TIMEOUT", 0.001)
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if failure == "timeout":
+            await asyncio.sleep(1)
         body = json.loads(request.content)
         calls.append(body)
         method, params = body["method"], body["params"]
@@ -112,14 +120,14 @@ async def test_current_state_reads_are_pinned_and_failures_are_explicit(failure:
     assert len(result.permissions) == 13
     ids = {e.id for e in result.evidence} | {e.id for e in decoded.evidence}
     assert all(set(p.evidence_ids) <= ids for p in result.permissions)
-    if failure in ("block", "reorg", "allowance"):
+    if failure in ("block", "reorg", "allowance", "timeout"):
         assert all(p.current.allowance_raw is None for p in result.permissions)
         assert result.coverage.status == "unavailable"
     else:
         assert all(p.permission_active is True for p in result.permissions)
         assert all(p.current.spender_has_code is False for p in result.permissions)
         assert result.coverage.status == ("partial" if failure == "balance" else "available")
-    if failure in ("block", "reorg"):
+    if failure in ("block", "reorg", "timeout"):
         assert not result.evidence
     catalog = build_catalog(decoded, risk, (), (), result)
     assert any(c.id.startswith("exposure:") for c in catalog)

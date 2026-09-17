@@ -19,6 +19,8 @@ from app.models.exposure import (
     PersistentExposure,
 )
 
+CURRENT_STATE_TIMEOUT = 30
+
 
 def compare_permission(
     identifier: str,
@@ -106,132 +108,133 @@ async def analyze_exposure(
     states: dict[tuple[str, str, str], CurrentPermissionState] = {}
     block: dict[str, Any] | None = None
     try:
-        candidate = await rpc.call("eth_getBlockByNumber", ["latest", False])
-        number, block_hash, timestamp = (
-            int(candidate["number"], 16),
-            candidate["hash"],
-            int(candidate["timestamp"], 16),
-        )
-        if number < decoded.transaction.block_number:
-            raise ValueError("Current block predates transaction")
-        # Validate the provider hash before using it as provenance.
-        CurrentPermissionState(checked_at=checked_at, block_hash=block_hash)
-        block = candidate
-        tag = {"blockHash": block_hash, "requireCanonical": True}
-        snapshot_id = f"{prefix}:now:{block_hash}:block"
-        evidence.append(
-            ExposureEvidence(
-                id=snapshot_id,
-                source="eth_getBlockByNumber",
-                description="Current-state reference block, revalidated after reads",
-                data_json=json.dumps(
-                    {"number": number, "hash": block_hash, "timestamp": timestamp}
-                ),
+        async with asyncio.timeout(CURRENT_STATE_TIMEOUT):
+            candidate = await rpc.call("eth_getBlockByNumber", ["latest", False])
+            number, block_hash, timestamp = (
+                int(candidate["number"], 16),
+                candidate["hash"],
+                int(candidate["timestamp"], 16),
             )
-        )
+            if number < decoded.transaction.block_number:
+                raise ValueError("Current block predates transaction")
+            # Validate the provider hash before using it as provenance.
+            CurrentPermissionState(checked_at=checked_at, block_hash=block_hash)
+            block = candidate
+            tag = {"blockHash": block_hash, "requireCanonical": True}
+            snapshot_id = f"{prefix}:now:{block_hash}:block"
+            evidence.append(
+                ExposureEvidence(
+                    id=snapshot_id,
+                    source="eth_getBlockByNumber",
+                    description="Current-state reference block, revalidated after reads",
+                    data_json=json.dumps(
+                        {"number": number, "hash": block_hash, "timestamp": timestamp}
+                    ),
+                )
+            )
 
-        async def inspect(
-            key: tuple[str, str, str],
-        ) -> tuple[CurrentPermissionState, ExposureEvidence]:
-            token, owner, spender = key
-            queries: dict[str, tuple[str, list[Any]]] = {
-                "allowance": (
-                    "eth_call",
-                    [
+            async def inspect(
+                key: tuple[str, str, str],
+            ) -> tuple[CurrentPermissionState, ExposureEvidence]:
+                token, owner, spender = key
+                queries: dict[str, tuple[str, list[Any]]] = {
+                    "allowance": (
+                        "eth_call",
+                        [
+                            {
+                                "to": token,
+                                "data": "0xdd62ed3e" + owner[2:].zfill(64) + spender[2:].zfill(64),
+                            },
+                            tag,
+                        ],
+                    ),
+                    "balance": (
+                        "eth_call",
+                        [{"to": token, "data": "0x70a08231" + owner[2:].zfill(64)}, tag],
+                    ),
+                    "spender_code": ("eth_getCode", [spender, tag]),
+                    "symbol": ("eth_call", [{"to": token, "data": "0x95d89b41"}, tag]),
+                    "name": ("eth_call", [{"to": token, "data": "0x06fdde03"}, tag]),
+                    "decimals": ("eth_call", [{"to": token, "data": "0x313ce567"}, tag]),
+                }
+                values: dict[str, Any] = {}
+                errors: list[str] = []
+
+                async def read(name: str, method: str, params: list[Any]) -> None:
+                    try:
+                        raw = await rpc.call(method, params)
+                        if name in ("allowance", "balance", "decimals"):
+                            parsed: Any = _uint(raw)
+                            if name == "decimals":
+                                parsed = int(parsed)
+                                if parsed > 255:
+                                    raise ValueError("Invalid decimals")
+                        elif name == "spender_code":
+                            if not isinstance(raw, str) or not raw.startswith("0x"):
+                                raise ValueError("Invalid bytecode")
+                            parsed = bool(bytes.fromhex(raw[2:]))
+                        else:
+                            parsed = _label(raw)
+                        values[name] = {"raw": raw, "value": parsed}
+                    except (
+                        RpcError,
+                        ValueError,
+                        TypeError,
+                        AttributeError,
+                        DecodingError,
+                        UnicodeError,
+                    ):
+                        errors.append(f"{name} unavailable or non-standard")
+
+                await asyncio.gather(
+                    *(read(name, method, params) for name, (method, params) in queries.items())
+                )
+                eid = f"{prefix}:now:{block_hash}:{token}:{owner}:{spender}"
+
+                def value(name: str) -> Any:
+                    return values.get(name, {}).get("value")
+
+                state = CurrentPermissionState(
+                    allowance_raw=value("allowance"),
+                    balance_raw=value("balance"),
+                    spender_has_code=value("spender_code"),
+                    symbol=value("symbol"),
+                    name=value("name"),
+                    decimals=value("decimals"),
+                    block_number=number,
+                    block_hash=block_hash,
+                    block_timestamp=timestamp,
+                    checked_at=checked_at,
+                    errors=tuple(sorted(errors)),
+                    evidence_ids=(snapshot_id, eid),
+                )
+                item = ExposureEvidence(
+                    id=eid,
+                    source="eth_call allowance/balanceOf/metadata + eth_getCode",
+                    description="Current ERC-20 permission observation; token-reported values",
+                    data_json=json.dumps(
                         {
-                            "to": token,
-                            "data": "0xdd62ed3e" + owner[2:].zfill(64) + spender[2:].zfill(64),
-                        },
-                        tag,
-                    ],
-                ),
-                "balance": (
-                    "eth_call",
-                    [{"to": token, "data": "0x70a08231" + owner[2:].zfill(64)}, tag],
-                ),
-                "spender_code": ("eth_getCode", [spender, tag]),
-                "symbol": ("eth_call", [{"to": token, "data": "0x95d89b41"}, tag]),
-                "name": ("eth_call", [{"to": token, "data": "0x06fdde03"}, tag]),
-                "decimals": ("eth_call", [{"to": token, "data": "0x313ce567"}, tag]),
-            }
-            values: dict[str, Any] = {}
-            errors: list[str] = []
+                            "token": token,
+                            "owner": owner,
+                            "spender": spender,
+                            "block_number": number,
+                            "block_hash": block_hash,
+                            "queries": queries,
+                            "results": values,
+                            "errors": sorted(errors),
+                        }
+                    ),
+                )
+                return state, item
 
-            async def read(name: str, method: str, params: list[Any]) -> None:
-                try:
-                    raw = await rpc.call(method, params)
-                    if name in ("allowance", "balance", "decimals"):
-                        parsed: Any = _uint(raw)
-                        if name == "decimals":
-                            parsed = int(parsed)
-                            if parsed > 255:
-                                raise ValueError("Invalid decimals")
-                    elif name == "spender_code":
-                        if not isinstance(raw, str) or not raw.startswith("0x"):
-                            raise ValueError("Invalid bytecode")
-                        parsed = bool(bytes.fromhex(raw[2:]))
-                    else:
-                        parsed = _label(raw)
-                    values[name] = {"raw": raw, "value": parsed}
-                except (
-                    RpcError,
-                    ValueError,
-                    TypeError,
-                    AttributeError,
-                    DecodingError,
-                    UnicodeError,
-                ):
-                    errors.append(f"{name} unavailable or non-standard")
-
-            await asyncio.gather(
-                *(read(name, method, params) for name, (method, params) in queries.items())
-            )
-            eid = f"{prefix}:now:{block_hash}:{token}:{owner}:{spender}"
-
-            def value(name: str) -> Any:
-                return values.get(name, {}).get("value")
-
-            state = CurrentPermissionState(
-                allowance_raw=value("allowance"),
-                balance_raw=value("balance"),
-                spender_has_code=value("spender_code"),
-                symbol=value("symbol"),
-                name=value("name"),
-                decimals=value("decimals"),
-                block_number=number,
-                block_hash=block_hash,
-                block_timestamp=timestamp,
-                checked_at=checked_at,
-                errors=tuple(sorted(errors)),
-                evidence_ids=(snapshot_id, eid),
-            )
-            item = ExposureEvidence(
-                id=eid,
-                source="eth_call allowance/balanceOf/metadata + eth_getCode",
-                description="Current ERC-20 permission observation; token-reported values",
-                data_json=json.dumps(
-                    {
-                        "token": token,
-                        "owner": owner,
-                        "spender": spender,
-                        "block_number": number,
-                        "block_hash": block_hash,
-                        "queries": queries,
-                        "results": values,
-                        "errors": sorted(errors),
-                    }
-                ),
-            )
-            return state, item
-
-        results = await asyncio.gather(*(inspect(key) for key in keys[:16]))
-        for key, (state, item) in zip(keys, results, strict=False):
-            states[key] = state
-            evidence.append(item)
-        after = await rpc.call("eth_getBlockByNumber", [hex(number), False])
-        if not after or after.get("hash") != block_hash:
-            raise ValueError("Current block changed during reads")
-    except (RpcError, ValueError, TypeError, KeyError):
+            results = await asyncio.gather(*(inspect(key) for key in keys[:16]))
+            for key, (state, item) in zip(keys, results, strict=False):
+                states[key] = state
+                evidence.append(item)
+            after = await rpc.call("eth_getBlockByNumber", [hex(number), False])
+            if not after or after.get("hash") != block_hash:
+                raise ValueError("Current block changed during reads")
+    except (RpcError, ValueError, TypeError, KeyError, TimeoutError):
         states.clear()
         # Do not present inconsistent state as valid evidence after a reorganization.
         evidence.clear()

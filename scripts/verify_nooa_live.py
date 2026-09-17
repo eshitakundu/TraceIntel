@@ -53,6 +53,8 @@ async def main() -> None:
             )
         )
         raise SystemExit(1) from None
+    finally:
+        await llm.aclose()
     assert before == hashlib.sha256(decoded.model_dump_json().encode()).hexdigest()
     print(
         json.dumps(
