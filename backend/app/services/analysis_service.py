@@ -54,6 +54,17 @@ class AnalysisService:
             stage="Queued",
         )
         job, created = await self.repository.submit(job, key)
+        if not created and job.status == "complete" and job.report_id:
+            cached = await self.repository.get_report(job.report_id)
+            if cached is not None:
+                chain = chains(self.settings)[job.chain]
+                rpc = RpcClient(self.client, chain.rpc_url.get_secret_value())
+                current = await rpc.call(
+                    "eth_getBlockByNumber", [hex(cached.decoded.transaction.block_number), False]
+                )
+                if not current or current.get("hash") != cached.decoded.transaction.block_hash:
+                    await self.fail(job, "Cached block changed; a fresh analysis is required.")
+                    return await self.submit(request)
         if created:
             if not await self.repository.reserve_budget(
                 f"analyses:{day}", self.settings.daily_analyses

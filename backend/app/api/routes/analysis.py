@@ -5,7 +5,9 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
+from app.api.protection import trusted_proxy
 from app.blockchain.chains import chains
+from app.blockchain.rpc_client import RpcError
 from app.models.report import AnalysisJob, AnalysisRequest, Report
 from app.services.analysis_service import AnalysisService, CapacityError
 
@@ -35,6 +37,8 @@ async def supported_chains(request: Request) -> list[dict[str, str | int]]:
 async def analyze(payload: AnalysisRequest, request: Request) -> AnalysisJob:
     app = service(request)
     ip = request.client.host if request.client else "unknown"
+    if trusted_proxy(request, app.settings):
+        ip = request.headers.get("x-traceintel-client-ip", ip)
     hour = datetime.now(UTC).strftime("%Y-%m-%dT%H")
     key = f"ip:{hashlib.sha256(ip.encode()).hexdigest()}:{hour}"
     if not await app.repository.reserve_budget(key, app.settings.requests_per_hour):
@@ -43,6 +47,8 @@ async def analyze(payload: AnalysisRequest, request: Request) -> AnalysisJob:
         return await app.submit(payload)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
+    except RpcError as exc:
+        raise HTTPException(503, "Cached evidence could not be revalidated. Retry later.") from exc
     except CapacityError as exc:
         raise HTTPException(429, str(exc), headers={"Retry-After": "60"}) from exc
 

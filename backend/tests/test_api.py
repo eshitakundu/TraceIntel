@@ -64,3 +64,9 @@ def test_validation_and_report_lifecycle() -> None:
         downloaded = client.get(f"/api/v1/reports/{job['id']}/download")
         assert downloaded.json() == report
         assert "attachment" in downloaded.headers["content-disposition"]
+        values["eth_getBlockByNumber"]["hash"] = "0x" + "c" * 64
+        refreshed = client.post(
+            "/api/v1/analyses", json={"chain": "ethereum", "transaction_hash": raw.tx_hash}
+        ).json()
+        assert refreshed["id"] != job["id"]
+        assert client.get(f"/api/v1/reports/{job['id']}").status_code == 200

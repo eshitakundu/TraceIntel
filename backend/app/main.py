@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app.api.protection import RequestProtection
 from app.api.routes import analysis, health
 from app.config import Settings
 from app.services.analysis_service import AnalysisService
@@ -40,6 +41,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         description="Deterministic EVM evidence with separately attributed agent interpretation.",
     )
     application.state.settings = settings
+    application.add_middleware(RequestProtection)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
