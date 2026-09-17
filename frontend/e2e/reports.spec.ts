@@ -13,7 +13,7 @@ test("@live analyzes a real Ethereum sample and retrieves the stored report", as
     fullPage: true,
   });
   await page
-    .getByRole("button", { name: /Ethereum \/ recorded transaction/ })
+    .getByRole("button", { name: /Ethereum Recorded transaction/ })
     .click();
   await expect(page).toHaveURL(/\/reports\//, { timeout: 110_000 });
   await expect(
@@ -38,14 +38,14 @@ test("@live analyzes a real Ethereum sample and retrieves the stored report", as
     page.getByRole("heading", { name: "Transaction intelligence." }),
   ).toBeVisible();
   expect(page.url()).toBe(originalUrl);
-  await page.screenshot({ path: "../docs/screenshots/report.png" });
+  await page.screenshot({ path: "../.artifacts/report.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.screenshot({ path: "../docs/screenshots/report-mobile.png" });
+  await page.screenshot({ path: "../.artifacts/report-mobile.png" });
   expect(errors).toEqual([]);
 });
 
@@ -75,7 +75,7 @@ test("@live renders approval evidence and validated NOOA interpretation", async 
   await page.screenshot({ path: "../docs/screenshots/exposure-dashboard.png" });
   await page
     .locator("#exposure")
-    .screenshot({ path: "../docs/screenshots/exposure-comparison.png" });
+    .screenshot({ path: "../.artifacts/exposure-comparison.png" });
   await page
     .getByRole("link", { name: /View evidence/ })
     .first()
@@ -85,10 +85,10 @@ test("@live renders approval evidence and validated NOOA interpretation", async 
   await expect(
     page.getByRole("heading", { name: "Transaction intelligence." }),
   ).toBeVisible();
-  await page.screenshot({ path: "../docs/screenshots/approval-report.png" });
+  await page.screenshot({ path: "../.artifacts/approval-report.png" });
   await page
     .locator("#interpretation")
-    .screenshot({ path: "../docs/screenshots/nooa-analysis.png" });
+    .screenshot({ path: "../.artifacts/nooa-analysis.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/reports/" + id);
   await expect(page.getByRole("heading", { name: "Then → Now" })).toBeVisible();

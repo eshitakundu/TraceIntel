@@ -29,12 +29,20 @@ test("connects to FastAPI and navigates documentation", async ({ page }) => {
 });
 
 test("shows a real API failure and allows retry", async ({ page }) => {
-  await page.route("**/api/v1/health", (route) =>
+  await page.route("**/api/v1/ready", (route) =>
     route.fulfill({ status: 503, body: "{}" }),
   );
+  await page.clock.install();
   await page.goto("/");
+  await expect(page.getByText("Backend waking up…")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Analyze transaction →" }),
+  ).toBeDisabled();
+  for (let attempt = 0; attempt < 8; attempt++) {
+    await page.clock.runFor(16000);
+  }
   await expect(page.getByText("API unavailable")).toBeVisible();
-  await page.unroute("**/api/v1/health");
+  await page.unroute("**/api/v1/ready");
   await page.getByRole("button", { name: "Retry connection" }).click();
   await expect(page.getByText("API connected")).toBeVisible();
 });

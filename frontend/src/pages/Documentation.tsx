@@ -110,8 +110,9 @@ export default function Documentation({
           <h2>Deployment</h2>
           <p>
             A Python 3.12 FastAPI backend and Node 22 React/Vite frontend.
-            Production targets a Render Docker API and Cloudflare
-            frontend. Workers compatibility does not block the backend.
+            Cloudflare serves the frontend and proxies API requests to Render
+            Docker with PostgreSQL in Singapore. The public demo uses free
+            compute and may need time to wake after inactivity.
           </p>
         </>
       )}

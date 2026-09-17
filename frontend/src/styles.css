@@ -127,7 +127,7 @@ h1 span {
 }
 small,
 .label {
-  color: #91a5af;
+  color: #b1beb9;
 }
 .status-card button {
   margin-top: 16px;
@@ -157,7 +157,7 @@ h2 {
 .panel p,
 .principles p,
 .document p {
-  color: #96aab4;
+  color: #bac6c1;
   font-size: 14px;
 }
 .network-row {
@@ -474,7 +474,7 @@ button:disabled {
 }
 .report-section p {
   font-size: 14px;
-  color: #a6bac4;
+  color: #c0ccc7;
 }
 .count {
   font: 11px monospace;
@@ -490,7 +490,7 @@ dl {
   font-size: 13px;
 }
 dt {
-  color: #8ea6b2;
+  color: #afbfba;
 }
 dd {
   margin: 0;
@@ -513,7 +513,7 @@ table {
   text-align: left;
 }
 th {
-  color: #8ea6b2;
+  color: #afbfba;
   font-weight: 400;
   border-bottom: 1px solid #334a55;
   padding: 10px;
@@ -615,7 +615,7 @@ td small {
 }
 .raw-evidence summary code {
   display: block;
-  color: #7ca797;
+  color: #a0c4b6;
   margin: 5px 0 0 14px;
   font-size: 10px;
 }

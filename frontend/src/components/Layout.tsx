@@ -1,11 +1,21 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 
+import { useHealth } from "../hooks/useHealth";
+
 export default function Layout() {
+  const readiness = useHealth();
   return (
     <>
       <header>
         <Link className="brand" to="/">
-          <span className="brand-mark">T</span> TRACEINTEL
+          <img
+            className="brand-mark"
+            src="/favicon.svg"
+            alt=""
+            width="32"
+            height="32"
+          />{" "}
+          TRACEINTEL
         </Link>
         <nav aria-label="Main navigation">
           <NavLink to="/methodology">Methodology</NavLink>
@@ -14,7 +24,7 @@ export default function Layout() {
         </nav>
       </header>
       <main>
-        <Outlet />
+        <Outlet context={readiness} />
       </main>
       <footer>
         <span>TRACEINTEL / EVIDENCE FIRST</span>

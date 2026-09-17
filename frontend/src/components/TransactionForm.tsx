@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getChains, submitAnalysis } from "../api/analysis";
 import type { Chain } from "../types/report";
 
-export default function TransactionForm() {
+export default function TransactionForm({ ready }: { ready: boolean }) {
   const [chains, setChains] = useState<Chain[]>([]);
   const [chain, setChain] = useState("ethereum");
   const [hash, setHash] = useState("");
@@ -11,6 +11,7 @@ export default function TransactionForm() {
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
   useEffect(() => {
+    if (!ready) return;
     const controller = new AbortController();
     getChains(controller.signal)
       .then(setChains)
@@ -21,12 +22,13 @@ export default function TransactionForm() {
           );
       });
     return () => controller.abort();
-  }, []);
+  }, [ready]);
   async function analyze(
     event?: FormEvent,
     sample?: { chain: string; hash: string },
   ) {
     event?.preventDefault();
+    if (!ready || busy || !chains.length) return;
     const value = (sample?.hash ?? hash).trim();
     if (!/^0x[0-9a-fA-F]{64}$/.test(value)) {
       setError("Enter a 0x-prefixed, 64-digit transaction hash.");
@@ -53,20 +55,35 @@ export default function TransactionForm() {
         </div>
         <form onSubmit={(event) => void analyze(event)}>
           <div className="form-grid">
-            <label>
-              Network
-              <select
-                value={chain}
-                onChange={(event) => setChain(event.target.value)}
-                disabled={!chains.length || busy}
-              >
-                {chains.map((item) => (
-                  <option key={item.slug} value={item.slug}>
-                    {item.name}
-                  </option>
+            <fieldset className="network-selector" disabled={busy || !ready}>
+              <legend>Network</legend>
+              <div className="network-options">
+                {(chains.length
+                  ? chains
+                  : [
+                      { slug: "ethereum", name: "Ethereum" },
+                      { slug: "monad", name: "Monad" },
+                    ]
+                ).map((item) => (
+                  <label
+                    key={item.slug}
+                    className={"network-option " + item.slug}
+                  >
+                    <input
+                      type="radio"
+                      name="network"
+                      value={item.slug}
+                      checked={chain === item.slug}
+                      onChange={() => setChain(item.slug)}
+                    />
+                    <span>
+                      <i aria-hidden="true" />
+                      {item.name}
+                    </span>
+                  </label>
                 ))}
-              </select>
-            </label>
+              </div>
+            </fieldset>
             <label>
               Transaction hash
               <input
@@ -81,10 +98,16 @@ export default function TransactionForm() {
           </div>
           <div className="form-bottom">
             <span>Public on-chain data. No wallet connection required.</span>
-            <button disabled={busy || !chains.length}>
+            <button disabled={busy || !ready || !chains.length}>
               {busy ? "Starting analysis…" : "Analyze transaction →"}
             </button>
           </div>
+          {!ready && (
+            <p className="readiness-note">
+              Analysis becomes available automatically when the backend is
+              ready.
+            </p>
+          )}
           {error && (
             <p role="alert" className="error">
               {error}
@@ -106,22 +129,25 @@ export default function TransactionForm() {
             },
             {
               chain: "ethereum",
-              name: "Ethereum",
+              name: "Recorded transaction",
               hash: "0xa5e6aec48fffd1c35d8410e2e81b63e1fca740bde922f5f2d4b7da50f65f532f",
             },
             {
               chain: "monad",
-              name: "Monad",
+              name: "Recorded transaction",
               hash: "0x3284afdd9fe66c9d0832cf640c1dd0da02ea9e990ffc091503d13d533fad7c2c",
             },
           ].map((sample) => (
             <button
               className="sample"
               key={sample.hash}
-              disabled={busy}
+              disabled={busy || !ready || !chains.length}
               onClick={() => void analyze(undefined, sample)}
             >
-              <span>{sample.name} / recorded transaction</span>
+              <span className={"sample-network " + sample.chain}>
+                {sample.chain === "ethereum" ? "Ethereum" : "Monad"}
+              </span>
+              <strong>{sample.name}</strong>
               <code>
                 {sample.hash.slice(0, 14)}…{sample.hash.slice(-8)}
               </code>

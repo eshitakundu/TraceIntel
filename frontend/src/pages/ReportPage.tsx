@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import type { useHealth } from "../hooks/useHealth";
+import BackendStatus from "../components/BackendStatus";
+import { Link, useParams, useOutletContext } from "react-router-dom";
 import { getReport } from "../api/analysis";
 import type { Report } from "../types/report";
 import EvidenceLinks from "../components/EvidenceLinks";
@@ -23,10 +25,12 @@ const checks: Record<string, string> = {
 };
 export default function ReportPage() {
   const { id = "" } = useParams();
+  const { state } = useOutletContext<ReturnType<typeof useHealth>>();
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
   useEffect(() => {
+    if (state !== "connected") return;
     const controller = new AbortController();
     getReport(id, controller.signal)
       .then((value) => {
@@ -39,7 +43,8 @@ export default function ReportPage() {
           );
       });
     return () => controller.abort();
-  }, [id]);
+  }, [id, state]);
+  if (state !== "connected") return <BackendStatus />;
   if (error)
     return (
       <section className="document">
@@ -126,7 +131,15 @@ export default function ReportPage() {
             "evidence",
           ].map((section) => (
             <a href={"#" + section} key={section}>
-              {section}
+              {(
+                {
+                  exposure: "Then → Now",
+                  risk: "Historical risk",
+                  interpretation: "NOOA interpretation",
+                  coverage: "Evidence coverage",
+                  evidence: "Technical evidence",
+                } as Record<string, string>
+              )[section] ?? section}
             </a>
           ))}
         </nav>
@@ -188,6 +201,10 @@ export default function ReportPage() {
               <h2>NOOA interpretation</h2>
               <span className="badge">{report.interpretation.status}</span>
             </div>
+            <p className="note">
+              Evidence-grounded interpretation. Blockchain facts, risk signals
+              and exposure states are determined by code.
+            </p>
             {interpretation ? (
               <>
                 <p className="note">

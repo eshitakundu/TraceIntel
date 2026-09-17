@@ -24,8 +24,12 @@ A semaphore bounds active pipelines; the queue, per-client requests, total daily
 
 ## Hosting
 
-Cloudflare serves assets and proxies API requests to a Render Docker service. A shared origin token protects POST requests; client identity is accepted only through that authenticated proxy. PostgreSQL is persistent and private to the deployment network. No secrets are bundled into frontend assets.
+Cloudflare serves traceintel.eshita.dev and proxies API requests to traceintel-api.onrender.com, a Render Docker service on free compute in Singapore. Ethereum and Monad share the configurable EVM chain registry. A shared origin token protects POST requests; client identity is accepted only through that authenticated proxy. PostgreSQL is persistent and private to the deployment network. No secrets are bundled into frontend assets.
 
 ## Persistent exposure extension
 
 Historical scoring is followed by a separate current-state permission analyzer. It uses the existing read-only RPC client and hash-pinned calls, returns immutable typed exposure observations, and contributes approved claims to NOOA. Historical facts and scores remain unchanged. Report JSON adds an optional versioned exposure field without changing SQL tables. Five-minute snapshot cache buckets allow fresh checks while retaining every saved report. See [exposure](exposure.md).
+
+## Interface references
+
+[Desktop workspace](screenshots/landing.png), [mobile workspace](screenshots/landing-mobile.png), [report](screenshots/exposure-dashboard.png) and [mobile report](screenshots/exposure-mobile.png) are captured by the browser suite. Reports use the recorded Ethereum fixture; their amounts and timestamps are historical observations, not live promises.

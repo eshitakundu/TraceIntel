@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import type { useHealth } from "../hooks/useHealth";
+import BackendStatus from "../components/BackendStatus";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useOutletContext,
+} from "react-router-dom";
 import { getJob } from "../api/analysis";
 import type { Job } from "../types/report";
 
@@ -16,10 +23,12 @@ const stages = [
 ];
 export default function AnalysisProgress() {
   const { id = "" } = useParams();
+  const { state } = useOutletContext<ReturnType<typeof useHealth>>();
   const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
+    if (state !== "connected") return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
@@ -47,7 +56,8 @@ export default function AnalysisProgress() {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [id, navigate]);
+  }, [id, navigate, state]);
+  if (state !== "connected") return <BackendStatus />;
   const current = stages.indexOf(job?.stage ?? "Queued");
   return (
     <section className="document">

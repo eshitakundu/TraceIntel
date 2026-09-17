@@ -1,21 +1,24 @@
-import { useHealth } from "../hooks/useHealth";
+import { useOutletContext } from "react-router-dom";
+import type { useHealth } from "../hooks/useHealth";
 import TransactionForm from "../components/TransactionForm";
 
 export default function Home() {
-  const { state, retry } = useHealth();
+  const { state, retry } = useOutletContext<ReturnType<typeof useHealth>>();
   return (
     <>
       <div className="workspace-bar">
         <span className="eyebrow">
-          <span className="dot" /> TRANSACTION + EXPOSURE INTELLIGENCE
+          <span className="dot" /> PERSISTENT ON-CHAIN EXPOSURE INTELLIGENCE
         </span>
-        <span className={"connection-pill " + state}>
-          {state === "online"
+        <span role="status" className={"connection-pill " + state}>
+          {state === "connected"
             ? "API connected"
             : state === "checking"
               ? "Checking connection…"
-              : "API unavailable"}
-          {state === "offline" && (
+              : state === "waking"
+                ? "Backend waking up…"
+                : "API unavailable"}
+          {state === "unavailable" && (
             <button onClick={retry}>Retry connection</button>
           )}
         </span>
@@ -31,9 +34,9 @@ export default function Home() {
             <span>See what remains.</span>
           </h1>
           <p>
-            Understand a historical transaction and check whether its token
-            spending permissions are still active. One report. Two points in
-            time.
+            A transaction can finish while its permissions remain active.
+            Reconstruct Ethereum and Monad transactions, then check what remains
+            exposed today.
           </p>
           <div className="trust-strip">
             <span>◈ Public on-chain evidence</span>
@@ -73,7 +76,7 @@ export default function Home() {
           </div>
         </aside>
       </section>
-      <TransactionForm />
+      <TransactionForm ready={state === "connected"} />
       <section className="product-difference">
         <div>
           <span className="eyebrow">BEYOND THE TRANSACTION RECEIPT</span>

@@ -12,6 +12,8 @@ Local base: http://localhost:8000/api/v1. Production clients use the public Clou
 | GET | /reports/{uuid} | Immutable stored report |
 | GET | /reports/{uuid}/download | JSON attachment |
 
+Supported chain slugs are `ethereum` (chain ID 1) and `monad` (chain ID 143). The same request contract applies to both.
+
 Submit:
 ```json
 {

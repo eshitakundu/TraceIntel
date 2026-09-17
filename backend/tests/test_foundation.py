@@ -27,3 +27,15 @@ def test_settings_validate_and_mask_secrets(monkeypatch: pytest.MonkeyPatch) -> 
     assert "test-secret" not in repr(settings)
     with pytest.raises(ValidationError):
         Settings(rpc_timeout_seconds=0)
+
+
+def test_public_chain_registry_preserves_both_supported_networks() -> None:
+    with TestClient(create_app(Settings(environment="test"))) as client:
+        response = client.get("/api/v1/chains")
+        assert response.status_code == 200
+        payload = response.json()
+        assert {chain["slug"]: chain["chain_id"] for chain in payload} == {
+            "ethereum": 1,
+            "monad": 143,
+        }
+        assert all("rpc_url" not in chain for chain in payload)

@@ -7,9 +7,6 @@ if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
   exit 1
 fi
 if [ "${TRACEINTEL_SKIP_MIGRATIONS:-false}" != "true" ]; then
-  printf '%s\n' 'TraceIntel startup: starting Alembic migrations.'
   alembic upgrade head
-  printf '%s\n' 'TraceIntel startup: Alembic migrations succeeded.'
 fi
-printf '%s\n' 'TraceIntel startup: starting Uvicorn.'
 exec uvicorn app.main:app --host 0.0.0.0 --port "$port" --workers 1 --timeout-graceful-shutdown 20

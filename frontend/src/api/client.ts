@@ -5,7 +5,7 @@ export interface Health {
 }
 
 export async function getHealth(signal?: AbortSignal): Promise<Health> {
-  const response = await fetch("/api/v1/health", { signal });
+  const response = await fetch("/api/v1/ready", { signal });
   if (!response.ok)
     throw new Error(
       "The API is unavailable. Check that the backend is running.",
