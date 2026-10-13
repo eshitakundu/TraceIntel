@@ -277,7 +277,12 @@ function PermissionCard({
           </div>
         </div>
         <span className={"exposure-badge state-" + p.status}>
-          {labels[p.status]}
+          {p.status === "PARTIALLY_ACTIVE" &&
+          h.unlimited &&
+          c.allowance_raw !== null &&
+          isUnlimited(c.allowance_raw)
+            ? "Active · effectively unlimited"
+            : labels[p.status]}
         </span>
       </div>
       <div className="comparison-grid">

@@ -39,7 +39,10 @@ export default function AgentBriefing({ report }: { report: Report }) {
   const actions = result?.actions ?? [];
   const chainId = revokeChains[report.chain];
   const sender = report.decoded.transaction.sender;
-  const byModel = interpretation.author === "model";
+  // Reports created before 1.2.0 have no author; a stored model result means the model.
+  const byModel =
+    interpretation.author === "model" ||
+    (!interpretation.author && !!interpretation.model && !!result);
   // Reasons already stated in the summary are not repeated on each action card.
   const stated = new Set(result?.summary.map((claim) => claim.id));
   const onCards = new Set(
