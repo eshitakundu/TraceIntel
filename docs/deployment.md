@@ -31,12 +31,14 @@ Free compute sleeps after inactivity. The frontend checks `/api/v1/ready`, displ
 | `TRACEINTEL_ENVIRONMENT` | `production` |
 | `TRACEINTEL_PROXY_TOKEN` | Existing shared origin secret; must match the Worker |
 | `OPENROUTER_API_KEY` | Backend-only secret |
-| `OPENROUTER_MODEL` | `openrouter/auto` |
+| `OPENROUTER_MODEL` | A model with reliable JSON-schema output; compare candidates with `scripts/verify_nooa_live.py` |
 | `TRACEINTEL_CORS_ORIGINS` | `["https://traceintel.eshita.dev"]` |
 | `TRACEINTEL_MAX_CONCURRENT_ANALYSES` | `2` |
 | `TRACEINTEL_REQUESTS_PER_HOUR` | `20` |
 | `TRACEINTEL_DAILY_ANALYSES` | `100` |
 | `TRACEINTEL_DAILY_LLM_ANALYSES` | `20` |
+
+Drift detection ("changed since the approval") reads state at the approval block, so use archive-capable RPCs. The default Ethereum RPC (`https://eth.drpc.org`) serves archive state; pruned providers keep working, but those checks are reported as unverifiable.
 
 The backend normalizes Render's PostgreSQL URL to asyncpg. `TRACEINTEL_DATABASE_URL` takes precedence over `DATABASE_URL`; configure only one. Optional `TRACEINTEL_ETHEREUM_RPC_URL`, `TRACEINTEL_MONAD_RPC_URL` and `TRACEINTEL_EXPLORER_API_KEY` select providers. Keep tracing disabled unless the provider supports it. Local `.env` is ignored and is not deployed.
 
@@ -64,7 +66,9 @@ Check these readiness endpoints for valid JSON with `status: "ok"` and `service:
 - [Public proxy readiness](https://traceintel.eshita.dev/api/v1/ready)
 - [Origin readiness](https://traceintel-api.onrender.com/api/v1/ready)
 
-Then exercise both recorded network examples, progress, report reload and JSON download. Readiness tests the database and job coordination, not RPC provider health. Worker 503 indicates missing configuration; 502 indicates an unreachable/timed-out origin. Origin readiness 503 indicates unavailable persistence or coordination.
+Then exercise both recorded network examples, progress, report reload and JSON download. In a report, the briefing's author chip shows whether the model ran; when it did not, `interpretation.reason` names the cause (for example a rejected key or an unknown model).
+
+Render's logs show one line per job stage with the job ID, completion time, lease heartbeat health and, for unexpected failures, the exception type and code location. Exception messages are deliberately never logged. Readiness tests the database and job coordination, not RPC provider health. Worker 503 indicates missing configuration; 502 indicates an unreachable/timed-out origin. Origin readiness 503 indicates unavailable persistence or coordination.
 
 Keep one configured API instance/worker. Process-owned leases protect temporary deployment overlap: heartbeat every 15 seconds, expiry after 60 seconds. Shutdown interrupts only owned jobs; recovery marks expired/unowned jobs retryable. Lost leases cannot revive terminal jobs. Heartbeat failure stops local work and fails readiness/submissions closed. Free-service sleep can interrupt in-process analysis; persisted reports survive in PostgreSQL.
 

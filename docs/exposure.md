@@ -4,15 +4,25 @@ TraceIntel answers two separate questions: what was notable in the historical tr
 
 ## Reused architecture
 
-The chain registry, bounded read-only RpcClient, Approval decoder, immutable Pydantic contracts, historical risk engine, repository, persisted job routes and NOOA claim validator remain in place. The new modules are models/exposure.py and blockchain/exposure_analyzer.py. ExposurePanel.tsx adds the comparison and metrics to the existing report.
+Exposure is computed by `blockchain/exposure_analyzer.py` into `models/exposure.py` contracts and shown by `ExposurePanel.tsx`. The pipeline evaluates historical risk first, then reads current permissions, then hands the result to the agent, which turns each distinct permission into catalog claims (`p0`, `p0:reach`…) and may investigate the live ones further ([agent design](agents.md)). Exposure never changes the historical score.
 
-The pipeline evaluates historical risk first, then reads current permissions, adds deterministic exposure claims to the approved catalog, and invokes NOOA. Exposure never changes the historical score.
+## Whose permission is it?
+
+A transaction emits Approval events for every owner it touches. Each permission records `owner_role`:
+
+| Role | Meaning | Treatment |
+| --- | --- | --- |
+| `sender` | The transaction's signer granted it | The sender's own exposure: scored, investigated, advised on |
+| `called_contract` | The contract the transaction called granted it, for example a Safe smart wallet executing for its owner, or a router approving from its own balance | Investigated and advised on; labelled "possibly your smart wallet" |
+| `other` | Another contract granted it while the transaction executed | Checked and shown separately, not scored or advised on |
+
+The bounded current-state reads cover the sender's permissions first. ERC-4337 smart accounts, whose transactions are sent by a bundler, appear as `other`; this is a documented limitation.
 
 ## Data contracts
 
 HistoricalPermission retains token, owner, spender, exact reported amount, maximum-allowance flag, historical block/time and event IDs. CurrentPermissionState holds allowance, balance, spender bytecode presence, optional token name/symbol/decimals, checked time, block number/hash/time, errors and observation IDs. PersistentExposure links these with a deterministic status and independent permission_active boolean. ExposureEvidence holds immutable serialized RPC observations.
 
-Reports use schema 1.1.0 with an optional exposure field. Existing schema 1.0.0 reports remain readable; they show that current state was not checked. SQL storage already persists the full versioned report JSON, so no table alteration or data migration is required. Existing Alembic migrations remain authoritative.
+Reports use schema 1.2.0 (1.1.0 added the optional exposure field; 1.2.0 added owner roles and the agent's investigation, actions and trace). Older reports remain readable; 1.0.0 reports show that current state was not checked. SQL storage already persists the full versioned report JSON, so no table alteration or data migration is required. Existing Alembic migrations remain authoritative.
 
 ## Rules
 
@@ -40,11 +50,11 @@ Amounts use exact uint256 integer strings. Metadata is optional and token-report
 
 “Now” means the recorded block and checked time. Reports are immutable and do not update while open. Refresh submits through the existing protected job API and creates a new report after the five-minute UTC cache bucket changes. Within the bucket it reuses the report and tells the user to retry within five minutes. Configuration and pipeline version are part of the cache key. Historical block revalidation is preserved.
 
-Each refresh can consume a normal analysis/LLM budget. Daily persisted caps and the authenticated Cloudflare proxy remain in force. This is snapshot analysis, not background monitoring or wallet scanning.
+Each refresh can consume a normal analysis and model budget. Daily persisted caps and the authenticated Cloudflare proxy remain in force. This is snapshot analysis, not background monitoring or wallet scanning.
 
 ## Evaluation
 
-make evaluate includes six exposure transition goldens in addition to existing historical and adversarial cases. Tests cover pinned calldata, missing balance, malformed allowance, unavailable blocks, reorganization, citation integrity, and unchanged historical facts/risk.
+make evaluate includes six exposure transition goldens alongside the historical, ownership and agent cases. Tests cover pinned calldata, missing balance, malformed allowance, unavailable blocks, reorganization, citation integrity, and unchanged historical facts/risk.
 
 PYTHONPATH=backend uv run python scripts/verify_exposure_live.py performs an opt-in real Ethereum check without model calls. The recorded approval sample has 13 events across nine distinct tuples. Live values change; offline expected results use labelled synthetic transitions.
 

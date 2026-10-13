@@ -1,11 +1,24 @@
 # NOOA integration
 
-NOOA 0.0.10 is pinned by uv.lock and runs in the Python Docker backend.
+[NOOA](https://pypi.org/project/nooa/) (NVIDIA's agent framework, pinned at 0.0.10 in `uv.lock`) provides the model calls behind the two model-backed roles: the `Investigator` planner and the `Reporter`. Both use `PredictStrategy`, which turns a typed Python method signature into a JSON-schema-constrained request and validates the response against the return type.
 
-Three restricted roles prioritize transaction facts, contract context and final report selections. Each uses PredictStrategy with max_retries=1: in this NOOA version that means one total attempt, with no validation retry. Each output is capped at 4,000 tokens; prompts request concise JSON selections. The overall sequence has a 90-second timeout and provider retries are disabled.
+| Role | Signature | Output |
+| --- | --- | --- |
+| `Investigator.plan` | permissions, findings so far, calls already run, budget | `PlanStep`: up to 4 `ToolCall(tool, permission_id)` and `done` |
+| `Reporter.brief` | the full claim catalog, actionable permission IDs, validator feedback | `ReportDraft`: claim IDs for summary, findings and uncertainties; actions with cited IDs; checks |
 
-Agents copy approved claim IDs, text and evidence IDs exactly. Historical facts and current exposure claims share this validation boundary. No generated-code tools are exposed. Unsupported claims, changed citations and malformed output are rejected; deterministic results remain available. Confidence refers to selection confidence, not safety.
+`PredictStrategy` gets `max_retries=2`, so a malformed or schema-invalid response gets one retry with NOOA's own error feedback. Grounding problems (unknown IDs, out-of-scope actions) are caught by TraceIntel's validator, which gives the reporter one repair with precise feedback. Output is capped at 600–700 tokens because the model returns IDs, not prose.
 
-OPENROUTER_API_KEY and OPENROUTER_MODEL=openrouter/auto are supported, with TRACEINTEL_OPENROUTER_* aliases. Use one naming style. The adapter prefixes the native model ID with the LiteLLM OpenRouter routing prefix; the resulting double prefix for openrouter/auto is intentional and was verified live.
+## Configuration
 
-Model output can be malformed or unavailable; validation failures remain explicit report statuses. Local typing stubs cover NOOA's dynamic decorators while application schemas and orchestration retain strict mypy validation.
+`OPENROUTER_API_KEY` and `OPENROUTER_MODEL` (or their `TRACEINTEL_OPENROUTER_*` aliases) enable the model roles. The client adds the LiteLLM `openrouter/` routing prefix to the configured model, so `openrouter/auto` becomes `openrouter/openrouter/auto`. Each model call has a 30-second timeout with provider retries disabled. `TRACEINTEL_DAILY_LLM_ANALYSES` caps how many analyses may use the model each day.
+
+Pin a model with reliable structured (JSON schema) output rather than relying on automatic routing, and compare candidates with `scripts/verify_nooa_live.py` before switching. When the model is missing, fails or exceeds the daily budget, the deterministic baseline runs instead, and the report names the reason, for example "Model unavailable: the provider rejected the API key (AuthenticationError)".
+
+## Testing without a provider
+
+`nooa.unifiedllm.fake.FakeLLMClient` accepts a list of scripted responses. The evaluation suite uses it to replay multi-turn trajectories (plans, invalid calls, invented claims, repairs) without network access. See [the agent design](agents.md) and [evaluations](../evals/README.md).
+
+## Platform note
+
+NOOA imports `fcntl` and registers a `SIGUSR2` handler at import time, so the backend runs on Linux and macOS but not natively on Windows. Use WSL or Docker on Windows. The frontend runs anywhere.

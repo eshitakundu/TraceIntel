@@ -1,102 +1,104 @@
 # TraceIntel
 
-**Persistent On-Chain Exposure Intelligence**
+**Can a contract you approved still take your tokens, has it changed since you said yes, and should you revoke it?**
 
-[Live app](https://traceintel.eshita.dev) · [Architecture](docs/architecture.md) · [Methodology](docs/methodology.md)
+[Live app](https://traceintel.eshita.dev) · [How the agent works](docs/agents.md) · [Evaluations](evals/README.md) · [Architecture](docs/architecture.md)
 
-A transaction can finish while the permissions it created remain active. TraceIntel reconstructs Ethereum and Monad transaction evidence and compares historical activity with current on-chain state to determine what remains exposed.
+![A TraceIntel report: the agent's briefing and recommended action, then the historical approval beside today's allowance](docs/screenshots/exposure-dashboard.png)
 
-![TraceIntel report with separate historical risk and current exposure](docs/screenshots/exposure-dashboard.png)
+## Why it exists
 
-## Why TraceIntel
+Token approvals outlive the swaps that create them. An unlimited approval granted once stays live until it is revoked, so a wallet can be drained months later, without signing anything new, when the approved contract is upgraded, compromised or simply trusted with more than it needs. Block explorers show what a transaction did. They do not tell you what it still allows, or whether the contract you trusted then is the contract running now.
 
-Transaction explorers explain what happened. TraceIntel follows the permission: **what changed then, what remains now, and does it still matter?** Analysis is read-only and requires no wallet connection.
+## What it does
 
-## Supported networks
+Paste an Ethereum or Monad transaction hash. TraceIntel:
 
-Ethereum and Monad mainnet share the same EVM acquisition, decoding and exposure pipeline. Every sample identifies its network; recorded fixtures retain chain provenance.
+1. **Decodes** every approval the transaction emitted, and separates the sender's own from approvals that contracts granted each other mid-transaction.
+2. **Checks today** each permission's allowance, the owner's balance and the spender's code, at one pinned and revalidated block (*then → now*).
+3. **Investigates** the live permissions with an agent: who the spender is, whether it was upgraded or its code changed since the approval, and whether a single key controls its upgrades.
+4. **Advises** per permission (*consider revoking*, *verify the spender* or *check who can upgrade it*), with every sentence linked to the on-chain evidence behind it.
 
-## What it analyzes
+It is read-only and needs no wallet connection.
 
-- Transaction and receipt evidence, deterministic EVM decoding and ERC-20 approvals.
-- Historical risk signals, kept separate from current allowance, owner balance and spender bytecode.
-- THEN → NOW exposure states with block provenance, explicit missing data and evidence-grounded NOOA interpretation.
-
-## Architecture
+## How the AI works, and why it cannot make things up
 
 ```mermaid
-flowchart TD
-  Browser[React dashboard] --> Worker[Cloudflare Worker and static assets]
-  Worker --> API[Render Docker / FastAPI]
-  API --> RPC[Ethereum / Monad RPC]
-  RPC --> Evidence[Immutable evidence and deterministic decoding]
-  Evidence --> Risk[Historical risk rules]
-  Evidence --> Exposure[Current-state exposure analysis]
-  Risk --> NOOA[NOOA interpretation]
-  Exposure --> NOOA
-  NOOA <--> OpenRouter[OpenRouter]
-  Risk --> Report[Cited report]
-  Exposure --> Report
-  NOOA --> Report
-  Report --> DB[(PostgreSQL)]
-  API <--> DB
+flowchart LR
+  E[On-chain evidence] --> C[(Claim catalog<br/>sentences written by code)]
+  C --> P{{Planner<br/>model or baseline}}
+  P -->|typed tool calls| G[Guard: scope · budget]
+  G --> T[Read-only tools]
+  T -->|new cited claims| C
+  C --> R{{Reporter<br/>model or baseline}}
+  R -->|claim IDs + actions| V[Grounding validator]
+  V -->|feedback, one repair| R
+  V --> B[Briefing + full trace]
 ```
 
-Blockchain facts, risk signals and exposure states come from deterministic code. NOOA selects and organizes approved, cited claims downstream of that evidence. The LLM does not determine blockchain truth or replace scores. Failed interpretation leaves the evidence available.
+- **Models choose, code writes.** The model selects claim IDs and actions; code turns evidence into every sentence. A report cannot contain a fact, number or address that did not come from the chain.
+- **A typed, bounded action space.** The planner can only request `spender_profile`, `upgrade_control` or `known_spender` on permission IDs that already exist in the evidence, and only for permissions the sender controls. Budgets are enforced in code.
+- **Validate, then repair once.** Unknown IDs, or actions without a supporting claim, are rejected with precise feedback, and the reporter gets one attempt to fix them.
+- **A deterministic baseline that is also the benchmark.** The same investigation and advice run without a model, and run instead when the model fails. Evaluations compare the two on labelled scenarios.
+- **Hardened inputs.** Attacker-chosen token symbols and contract names never reach model input, and provider errors never reach reports or logs.
+- **Auditable.** Every plan, tool call, rejection, repair and timing is stored with the report and shown as "How the agent worked".
 
-## Then → Now
+Built on [NOOA](docs/nooa.md) (NVIDIA's agent framework) with OpenRouter models. Full design, trade-offs and rejected alternatives: [docs/agents.md](docs/agents.md).
 
-An approval event records historical intent; it does not establish today's allowance. TraceIntel reads allowance, owner balance and spender bytecode at a recorded current block, then compares the permission with its historical state.
+## Evidence that it works
 
-`ACTIVE`, `PARTIALLY_ACTIVE`, `REVOKED`, `SUPERSEDED` and `UNKNOWN` describe that comparison. Superseded permissions can still be active; unknown never implies safe. Saved reports remain immutable snapshots. [Exposure semantics](docs/exposure.md) define the exact rules.
+`make evaluate` runs **24 offline cases in CI**: historical rules, approval ownership on a real transaction, six exposure transitions, **eight labelled agent scenarios** (upgraded spender, key-held spender, single-key upgrades, recognised router, raised-to-unlimited, revoked, pruned history…) and **five adversarial guardrail cases** in which the model itself is scripted to misbehave. `scripts/verify_nooa_live.py` scores a real model against the rule-based baseline on the same scenarios. [Details](evals/README.md).
 
 ## Engineering highlights
 
-Async, bounded RPC acquisition feeds immutable evidence models and versioned deterministic scoring. Structured NOOA outputs are validated against an approved claim catalog. PostgreSQL persistence, Alembic migrations and process-owned job leases support restart recovery; cache revalidation and request/model budgets bound repeated work. Docker, a Cloudflare reverse proxy and automated tests/evaluations cover the deployment boundary.
+- **Correct under real chain conditions.** Reads are pinned to block hashes (EIP-1898) and revalidated, and reorgs invalidate state and cached reports. It falls back to labelled current state when providers prune history, recognises EIP-7702 delegated accounts and UNI-style uint96 "infinite" approvals, and keeps exact uint256 strings with no floats.
+- **Production-shaped backend.** Job leases make stale workers stop. A self-healing heartbeat, atomic SQL budgets (per-client, daily, model), refunds for non-existent transactions, and structured logs that never contain secrets.
+- **Strictly typed and tested.** Frozen Pydantic models, mypy strict, 60 backend tests on SQLite and PostgreSQL in CI, frontend unit tests, Playwright browser tests at four viewports, and a Docker smoke test.
+
+## Networks
+
+Ethereum and Monad share one EVM pipeline. Ethereum is where most approval risk and liquidity sit. Monad shows the pipeline is chain-agnostic on a high-throughput EVM. Adding a chain is a registry entry and an RPC URL.
 
 ## Stack
 
 | Layer | Technology |
 | --- | --- |
-| Backend | Python, FastAPI, Pydantic, SQLAlchemy |
-| Interpretation | NOOA, OpenRouter, structured outputs |
-| On-chain | Ethereum, Monad, EVM JSON-RPC, ABI/event decoding, ERC-20, proxy inspection |
-| Frontend | React, TypeScript, Vite |
-| Persistence | PostgreSQL in production; SQLite locally; Alembic |
-| Infrastructure | Docker, Render, Cloudflare Workers, GitHub Actions |
+| Agent | NOOA `PredictStrategy`, OpenRouter, typed tool calls, grounding validator |
+| Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy, Alembic |
+| On-chain | EVM JSON-RPC, ABI and event decoding, ERC-20/721, EIP-1967, EIP-1898, EIP-7702 |
+| Frontend | React 19, TypeScript, Vite |
+| Infrastructure | Docker on Render, PostgreSQL, Cloudflare Workers, GitHub Actions |
 
-## Local development
+## Run locally
 
-Requires Python 3.12, uv, Node 22.12+ (22 LTS), npm and Make. Use WSL on Windows.
+Requires Python 3.12, uv, Node 22.12+, npm and Make. The backend needs Linux or macOS (NOOA imports `fcntl`); on Windows, use WSL.
 
 ```sh
-cp .env.example .env  # only if .env does not already exist
+cp .env.example .env   # once
 make install
-make backend         # terminal 1: migrate, then localhost:8000
-make frontend        # terminal 2: localhost:5173
+make backend           # terminal 1: migrations, then localhost:8000
+make frontend          # terminal 2: localhost:5173
 ```
 
-Vite proxies API requests to FastAPI. Deterministic analysis works without an OpenRouter key. To enable interpretation, set `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` in the ignored root `.env`. Provider credentials belong only on the backend, never in `VITE_*` variables. See [.env.example](.env.example) for optional provider settings.
+Without `OPENROUTER_API_KEY`, the rule-based baseline produces the investigation and advice, so everything works offline from a model. For drift checks, use an archive-capable RPC (the Ethereum default is one).
 
 ## Testing
 
 ```sh
-make check
-make evaluate
-cd frontend
-npx playwright install chromium
-npm run test:e2e
-npx wrangler deploy --dry-run
+make check        # lint, types, unit tests, build
+make evaluate     # 24 offline evaluation cases
+cd frontend && npx playwright install chromium && npm run test:e2e
 ```
-
-Backend tests cover decoding, immutable evidence, risk/exposure semantics, API protection, storage and job recovery. CI runs the suite against SQLite and PostgreSQL. Frontend tests cover readiness retries, response validation, formatting and the Worker boundary; browser tests cover navigation, both networks, reports and responsive layouts. Offline evaluations check labelled historical and exposure cases. CI also builds the Docker image. [Evaluation methodology](evals/README.md) separates recorded evidence, synthetic cases and opt-in live checks.
 
 ## Deployment
 
-[traceintel.eshita.dev](https://traceintel.eshita.dev) runs on Cloudflare → Render Docker → PostgreSQL. The public demo uses Render free compute in Singapore and can take time to wake after inactivity. The UI retries readiness automatically before enabling analysis.
-
-[Deployment operations](docs/deployment.md) documents the actual manual Render configuration, startup migrations and the Worker's required runtime secret.
+[traceintel.eshita.dev](https://traceintel.eshita.dev) runs on Cloudflare → Render Docker → PostgreSQL. The demo backend uses Render's free tier, so the first visit after a quiet period can take up to two minutes to wake; the UI retries automatically. See [deployment](docs/deployment.md).
 
 ## Limitations
 
-Current exposure is a block-specific snapshot, not continuous monitoring. Provider data can be incomplete, and arbitrary protocol semantics are not fully modeled. Emitted approval events are not equivalent to current allowance; block-end state is not exact intra-transaction state. Historical risk and current exposure are separate indicators, not safety ratings.
+- Snapshots, not monitoring. "Now" is the recorded block.
+- Analyzes one transaction's permissions, not a whole wallet; wallet-wide scans need an indexer.
+- "Changed since approval" needs approval-block state. Free Monad RPCs keep about two weeks, so older checks are reported as unverifiable.
+- EIP-1967 proxies only; UUPS upgrade authority inside implementations is reported as undetermined.
+- ERC-4337 smart-account approvals appear as "other contracts", because their transactions are sent by bundlers.
+- Risk scores and recommendations describe evidence. They are not safety ratings.
