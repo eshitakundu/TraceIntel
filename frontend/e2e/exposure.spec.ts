@@ -57,12 +57,24 @@ test("shows separate historical risk and current exposure with working evidence 
   ).toBeVisible();
   await expect(page.getByText("NOW / CURRENT APPROVAL EXPOSURE")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Then → Now" })).toBeVisible();
-  await expect(page.locator(".permission-card")).toHaveCount(3);
-  await page.getByRole("button", { name: "Show all 9 permissions" }).click();
-  await expect(page.locator(".permission-card")).toHaveCount(9);
+  // The agent's answer leads the report, and every action cites evidence.
+  await expect(
+    page.getByRole("heading", { name: "What this transaction left behind" }),
+  ).toBeVisible();
+  await expect(page.locator(".action-card").first()).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "How the agent worked" }),
+  ).toBeVisible();
+  await expect(page.locator(".trace-step").first()).toBeVisible();
+  // The sender's own permission is shown first; approvals other contracts granted each
+  // other mid-transaction are grouped separately and not counted as the sender's.
+  await expect(page.locator("#exposure > .permission-card")).toHaveCount(1);
+  const others = page.locator(".other-owners");
+  await expect(others.locator(".permission-card")).toHaveCount(8);
+  await page.locator(".other-owners > summary").click();
+  await expect(others.locator(".permission-card").first()).toBeVisible();
   await page
-    .locator(".comparison-side.now")
-    .first()
+    .locator("#exposure > .permission-card .comparison-side.now")
     .getByRole("link")
     .first()
     .click();
@@ -100,7 +112,7 @@ test("does not present unavailable current state as inactive or safe", async ({
   );
   await page.goto("/reports/" + fixture.id);
   await expect(
-    page.getByText("9 unknown · 9 distinct permissions checked"),
+    page.getByText("1 unknown · 1 distinct permission checked"),
   ).toBeVisible();
   await expect(
     page

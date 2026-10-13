@@ -102,7 +102,10 @@ export function ExposureMetrics({ report }: { report: Report }) {
         <p>
           {unknown ? unknown + " unknown · " : ""}
           {permissions.length
-            ? permissions.length + " distinct permissions checked"
+            ? permissions.length +
+              (permissions.length === 1
+                ? " distinct permission checked"
+                : " distinct permissions checked")
             : "No ERC-20 permission comparison available"}
         </p>
         {others > 0 && (
