@@ -63,3 +63,36 @@ def test_labels_and_amounts() -> None:
     assert amount("190", 18) == "less than 0.000001"
     assert amount("123456789", 3) == "123,456.789"
     assert amount("42", None) == "42 raw units"
+
+
+def test_spent_infinite_allowance_is_described_as_effectively_unlimited() -> None:
+    from datetime import UTC, datetime
+
+    from app.agents.catalog import permission_claims
+    from app.blockchain.exposure_analyzer import compare_permission
+    from app.models.exposure import CurrentPermissionState, HistoricalPermission
+
+    infinite = 2**256 - 1
+    historical = HistoricalPermission(
+        token="0x" + "1" * 40,
+        owner="0x" + "2" * 40,
+        spender="0x" + "3" * 40,
+        allowance_raw=str(infinite),
+        unlimited=True,
+        block_number=1,
+        timestamp=1,
+        evidence_ids=("then",),
+        owner_role="sender",
+    )
+    current = CurrentPermissionState(
+        allowance_raw=str(infinite - 10**6),
+        balance_raw="0",
+        decimals=6,
+        checked_at=datetime(2026, 10, 1, tzinfo=UTC),
+        evidence_ids=("now",),
+    )
+    permission = compare_permission("p", historical, current)
+    assert permission.status == "PARTIALLY_ACTIVE"
+    text = permission_claims("p0", permission)[0].text
+    assert "effectively unlimited" in text
+    assert "reduced amount" not in text

@@ -121,11 +121,14 @@ def permission_claims(pid: str, permission: PersistentExposure) -> list[CitedCla
         + (" that is still active" if is_live(permission) else ""),
     }[permission.status]
     then = amount(h.allowance_raw, c.decimals, h.unlimited)
+    now_unlimited = c.allowance_raw is not None and is_unlimited(int(c.allowance_raw))
     now = (
-        "unknown"
-        if c.allowance_raw is None
-        else amount(c.allowance_raw, c.decimals, is_unlimited(int(c.allowance_raw)))
+        "unknown" if c.allowance_raw is None else amount(c.allowance_raw, c.decimals, now_unlimited)
     )
+    if permission.status == "PARTIALLY_ACTIVE" and h.unlimited and now_unlimited:
+        # Some tokens decrement an infinite allowance when it is spent; it stays effectively
+        # unlimited, so "reduced" alone would mislead.
+        state = "is still active and effectively unlimited (spending reduced it slightly)"
     claims = [
         CitedClaim(
             id=pid,

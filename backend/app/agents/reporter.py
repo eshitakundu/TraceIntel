@@ -27,10 +27,13 @@ class Reporter(Agent):
     ) -> ReportDraft:
         """Select claim IDs for a briefing and recommend actions. Write no prose.
 
-        summary: 1-2 claim IDs that answer "can anything still spend my tokens, and how
-          much?" Prefer live permissions granted by the sender and their reach claims.
-        findings: up to 4 claim IDs, the most decision-relevant first (upgrades since the
-          approval, single-key control, key-held spenders, unlimited amounts).
+        summary: REQUIRED, 1-2 claim IDs that answer "can anything still spend my tokens,
+          and how much?" Use the sender's live permissions and their reach claims; if
+          none are live, use the sender's own permission or tx:approvals.
+        findings: up to 4 claim IDs not already in summary, most decision-relevant first:
+          investigation results about the sender's permissions (IDs like p0:drift,
+          p0:control, p0:spender, p0:known), then scored risk claims. Permissions other
+          contracts granted each other are context, not findings.
         uncertainties: up to 3 claim IDs about evidence that is missing or unverifiable.
         actions: only for IDs in live_permission_ids. Choose consider_revoking,
           verify_spender or review_upgrade_control, and cite 1-3 claim IDs in `because`;
