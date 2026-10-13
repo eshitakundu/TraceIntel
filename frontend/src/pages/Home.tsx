@@ -7,7 +7,7 @@ const steps = [
   {
     key: "then",
     tone: "",
-    title: "What permission was created?",
+    title: "What did you approve?",
     text: "Decoded from the transaction.",
   },
   {
@@ -17,33 +17,63 @@ const steps = [
     text: "Checked against the chain today.",
   },
   {
-    key: "ref",
+    key: "ai",
     tone: "lime",
-    title: "Can I verify it?",
-    text: "Linked evidence. Unknowns stay visible.",
+    title: "Should you revoke it?",
+    text: "An agent checks the spender and cites every reason.",
   },
 ];
 
-const features = [
+const why = [
   {
-    key: "then",
-    title: "Historical facts",
-    text: "What moved, and who got permission.",
+    title: "Approvals don't expire",
+    text: "An unlimited approval stays live long after the swap that needed it.",
   },
   {
-    key: "now",
-    title: "Current exposure",
-    text: "Which approvals are still active now.",
+    title: "Spenders can change",
+    text: "An upgradeable spender can get new code after you said yes.",
   },
   {
-    key: "vs",
-    title: "Then vs now",
-    text: "Original amount next to today's allowance.",
+    title: "Explorers show history",
+    text: "They show what happened, not what can still move your tokens.",
+  },
+];
+
+const how = [
+  {
+    key: "01",
+    title: "Decode",
+    text: "Reads the approvals and separates yours from contracts' own.",
   },
   {
-    key: "ref",
-    title: "Cited answers",
-    text: "NOOA explains, linking every claim to evidence.",
+    key: "02",
+    title: "Check today",
+    text: "Reads each allowance, balance and spender at one pinned block.",
+  },
+  {
+    key: "03",
+    title: "Investigate",
+    text: "An agent profiles spenders: upgrades since approval, who controls them.",
+  },
+  {
+    key: "04",
+    title: "Advise",
+    text: "Revoke, verify or review, with every reason linked to evidence.",
+  },
+];
+
+const different = [
+  {
+    title: "Answers “should I revoke?”",
+    text: "Not a list of approvals: a cited recommendation for each live permission.",
+  },
+  {
+    title: "Notices what changed",
+    text: "Compares the spender at approval time with today, including upgrades and single-key control.",
+  },
+  {
+    title: "AI that can't invent facts",
+    text: "The model picks from facts written by code. A validator rejects anything else, and a rule-based baseline keeps it honest.",
   },
 ];
 
@@ -71,8 +101,8 @@ export default function Home() {
             <span className="dim">See what remains.</span>
           </h1>
           <p>
-            See what a transaction did, and which token approvals it left
-            active.
+            Old token approvals are how wallets get drained. Paste a transaction
+            to see what it can still spend today, and whether to revoke it.
           </p>
           <div className="trust-strip">
             <span>Read-only analysis</span>
@@ -108,26 +138,55 @@ export default function Home() {
         </aside>
       </section>
       <TransactionForm ready={state === "connected"} />
-      <section className="product-difference">
-        <div>
-          <h2>
+      <section className="pitch" aria-labelledby="why-title">
+        <div className="pitch-head">
+          <span className="eyebrow">WHY IT EXISTS</span>
+          <h2 id="why-title">
             A finished transaction
             <br />
             <span className="dim">can leave access open.</span>
           </h2>
-          <p>
-            Approvals often outlive the swap that created them. TraceIntel
-            checks whether they still work.
-          </p>
         </div>
-        <div className="feature-grid">
-          {features.map((feature) => (
-            <article className="tilt" key={feature.title} {...tilt(5)}>
+        <div className="pitch-grid">
+          {why.map((item) => (
+            <article className="pitch-card" key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section className="pitch" aria-labelledby="how-title">
+        <div className="pitch-head">
+          <span className="eyebrow">HOW IT WORKS</span>
+          <h2 id="how-title">Four steps. One answer.</h2>
+        </div>
+        <ol className="how-steps">
+          {how.map((step) => (
+            <li className="tilt" key={step.key} {...tilt(5)}>
               <span className="feature-icon keycap pixel" aria-hidden="true">
-                {feature.key}
+                {step.key}
               </span>
-              <h3>{feature.title}</h3>
-              <p>{feature.text}</p>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <section className="pitch" aria-labelledby="different-title">
+        <div className="pitch-head">
+          <span className="eyebrow">WHY IT'S DIFFERENT</span>
+          <h2 id="different-title">
+            Evidence first.
+            <br />
+            <span className="dim">AI where it helps.</span>
+          </h2>
+        </div>
+        <div className="pitch-grid">
+          {different.map((item) => (
+            <article className="pitch-card accent" key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
             </article>
           ))}
         </div>
