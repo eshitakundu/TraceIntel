@@ -1,127 +1,135 @@
 import { useOutletContext } from "react-router-dom";
 import type { useHealth } from "../hooks/useHealth";
 import TransactionForm from "../components/TransactionForm";
+import { tilt } from "../motion";
+
+const steps = [
+  {
+    key: "then",
+    tone: "",
+    title: "What permission was created?",
+    text: "Decoded from the transaction.",
+  },
+  {
+    key: "now",
+    tone: "cobalt",
+    title: "Does it still exist?",
+    text: "Checked against the chain today.",
+  },
+  {
+    key: "ref",
+    tone: "lime",
+    title: "Can I verify it?",
+    text: "Linked evidence. Unknowns stay visible.",
+  },
+];
+
+const features = [
+  {
+    key: "then",
+    title: "Historical facts",
+    text: "What moved, and who got permission.",
+  },
+  {
+    key: "now",
+    title: "Current exposure",
+    text: "Which approvals are still active now.",
+  },
+  {
+    key: "vs",
+    title: "Then vs now",
+    text: "Original amount next to today's allowance.",
+  },
+  {
+    key: "ref",
+    title: "Cited answers",
+    text: "NOOA explains, linking every claim to evidence.",
+  },
+];
 
 export default function Home() {
   const { state, retry } = useOutletContext<ReturnType<typeof useHealth>>();
   return (
     <>
-      <div className="workspace-bar">
-        <span className="eyebrow">
-          <span className="dot" /> PERSISTENT ON-CHAIN EXPOSURE INTELLIGENCE
-        </span>
-        <span role="status" className={"connection-pill " + state}>
-          {state === "connected"
-            ? "API connected"
-            : state === "checking"
-              ? "Checking connection…"
-              : state === "waking"
-                ? "Backend waking up…"
-                : "API unavailable"}
-          {state === "unavailable" && (
-            <button onClick={retry}>Retry connection</button>
-          )}
-        </span>
-      </div>
       <section className="hero intelligence-hero">
         <div className="hero-copy">
-          <span className="hero-kicker">
-            THE TRANSACTION IS ONLY THE BEGINNING
+          <span role="status" className={"connection-pill " + state}>
+            {state === "connected"
+              ? "API connected"
+              : state === "checking"
+                ? "Checking connection…"
+                : state === "waking"
+                  ? "Backend waking up…"
+                  : "API unavailable"}
+            {state === "unavailable" && (
+              <button onClick={retry}>Retry connection</button>
+            )}
           </span>
           <h1>
             Trace what happened.
             <br />
-            <span>See what remains.</span>
+            <span className="dim">See what remains.</span>
           </h1>
           <p>
-            A transaction can finish while its permissions remain active.
-            Reconstruct Ethereum and Monad transactions, then check what remains
-            exposed today.
+            See what a transaction did, and which token approvals it left
+            active.
           </p>
           <div className="trust-strip">
-            <span>◈ Public on-chain evidence</span>
-            <span>↗ Read-only analysis</span>
+            <span>Read-only analysis</span>
             <span>No wallet connection</span>
+            <span>Ethereum & Monad</span>
           </div>
         </div>
         <aside
           className="time-lens"
           aria-label="Historical analysis and current exposure"
         >
-          <div className="lens-heading">
-            <span className="label">TWO LENSES. ONE INVESTIGATION.</span>
-            <span className="lens-orbit">◈</span>
-          </div>
-          <div className="lens-step">
-            <span className="time-node">01</span>
-            <div>
-              <span className="label">THEN · TRANSACTION</span>
-              <h3>What permission was created?</h3>
-              <p>Decode approvals, movements and historical risk.</p>
+          {steps.map((step, index) => (
+            <div key={step.key}>
+              {index > 0 && (
+                <span className="lens-connector" aria-hidden="true">
+                  <span className="beam" />
+                </span>
+              )}
+              <div className={"lens-step " + step.key}>
+                <span
+                  className={"time-node keycap pixel " + step.tone}
+                  aria-hidden="true"
+                >
+                  {step.key}
+                </span>
+                <div>
+                  <h3>{step.title}</h3>
+                  <p>{step.text}</p>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="lens-connector">
-            <span /> Follow the permission <span />
-          </div>
-          <div className="lens-step now">
-            <span className="time-node">02</span>
-            <div>
-              <span className="label">NOW · CURRENT STATE</span>
-              <h3>Does it still exist?</h3>
-              <p>Read the current allowance and owner balance.</p>
-            </div>
-          </div>
-          <div className="lens-foot">
-            Evidence at both ends. Unknowns stay visible.
-          </div>
+          ))}
         </aside>
       </section>
       <TransactionForm ready={state === "connected"} />
       <section className="product-difference">
         <div>
-          <span className="eyebrow">BEYOND THE TRANSACTION RECEIPT</span>
           <h2>
-            A completed transaction.
+            A finished transaction
             <br />
-            An ongoing permission?
+            <span className="dim">can leave access open.</span>
           </h2>
           <p>
-            An approval can outlive the action that created it. TraceIntel
-            connects the historical event to a fresh, block-specific allowance
-            check.
+            Approvals often outlive the swap that created them. TraceIntel
+            checks whether they still work.
           </p>
         </div>
         <div className="feature-grid">
-          <article>
-            <span className="feature-icon">↗</span>
-            <h3>Historical facts</h3>
-            <p>
-              What moved, who gained permission and which indicators triggered.
-            </p>
-          </article>
-          <article>
-            <span className="feature-icon">◉</span>
-            <h3>Persistent exposure</h3>
-            <p>
-              Active, reduced, inactive or changed allowances, with explicit
-              unknowns.
-            </p>
-          </article>
-          <article>
-            <span className="feature-icon">⇄</span>
-            <h3>Then vs now</h3>
-            <p>
-              Original amounts beside current state. Historical risk stays
-              separate.
-            </p>
-          </article>
-          <article>
-            <span className="feature-icon">⌁</span>
-            <h3>Traceable interpretation</h3>
-            <p>
-              NOOA organizes verified claims with links back to their evidence.
-            </p>
-          </article>
+          {features.map((feature) => (
+            <article className="tilt" key={feature.title} {...tilt(5)}>
+              <span className="feature-icon keycap pixel" aria-hidden="true">
+                {feature.key}
+              </span>
+              <h3>{feature.title}</h3>
+              <p>{feature.text}</p>
+            </article>
+          ))}
         </div>
       </section>
     </>

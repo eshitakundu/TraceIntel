@@ -9,6 +9,7 @@ import { waitForReadiness } from "../api/readiness";
 import type { useHealth } from "../hooks/useHealth";
 import ActivityStatus from "./ActivityStatus";
 import type { Chain } from "../types/report";
+import { tilt } from "../motion";
 
 export default function TransactionForm({ ready }: { ready: boolean }) {
   const [chains, setChains] = useState<Chain[]>([]);
@@ -89,7 +90,7 @@ export default function TransactionForm({ ready }: { ready: boolean }) {
       <section className="panel transaction-panel">
         <div className="section-heading">
           <h2>Analyze a transaction</h2>
-          <span className="badge">READ-ONLY</span>
+          <span className="badge read-only">READ-ONLY</span>
         </div>
         <form aria-busy={busy} onSubmit={(event) => void analyze(event)}>
           <div className="form-grid">
@@ -114,7 +115,7 @@ export default function TransactionForm({ ready }: { ready: boolean }) {
                       checked={chain === item.slug}
                       onChange={() => setChain(item.slug)}
                     />
-                    <span>
+                    <span className="keycap pixel">
                       <i aria-hidden="true" />
                       {item.name}
                     </span>
@@ -135,7 +136,7 @@ export default function TransactionForm({ ready }: { ready: boolean }) {
             </label>
           </div>
           <div className="form-bottom">
-            <span>Public on-chain data. No wallet connection required.</span>
+            <span>Paste a transaction hash. Public data only.</span>
             <button disabled={busy || !ready || !chains.length}>
               {busy
                 ? "Please wait…"
@@ -188,10 +189,9 @@ export default function TransactionForm({ ready }: { ready: boolean }) {
           )}
         </form>
       </section>
-      <section>
+      <section className="samples">
         <div className="section-heading">
-          <h2>Start with a real transaction</h2>
-          <span className="label">PUBLIC CHAIN EXAMPLES</span>
+          <h2>Or try a real example</h2>
         </div>
         <div className="sample-grid">
           {[
@@ -212,10 +212,11 @@ export default function TransactionForm({ ready }: { ready: boolean }) {
             },
           ].map((sample) => (
             <button
-              className="sample"
+              className={"sample tilt " + sample.chain}
               key={sample.hash}
               disabled={busy || !ready || !chains.length}
               onClick={() => void analyze(undefined, sample)}
+              {...tilt(5)}
             >
               <span className={"sample-network " + sample.chain}>
                 {sample.chain === "ethereum" ? "Ethereum" : "Monad"}
@@ -224,7 +225,7 @@ export default function TransactionForm({ ready }: { ready: boolean }) {
               <code>
                 {sample.hash.slice(0, 14)}…{sample.hash.slice(-8)}
               </code>
-              <span>Inspect evidence ↗</span>
+              <span className="sample-cta">Analyze →</span>
             </button>
           ))}
         </div>
