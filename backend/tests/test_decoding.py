@@ -71,3 +71,30 @@ def test_recorded_chain_data_and_reverted_movement(chain: str) -> None:
     receipt["status"] = "0x0"
     failed = decode_transaction(raw.model_copy(update={"receipt_json": json.dumps(receipt)}))
     assert not failed.approvals and not failed.movements
+
+
+def test_unlimited_sentinels() -> None:
+    from app.blockchain.event_decoder import is_unlimited
+
+    assert is_unlimited(2**256 - 1)
+    assert is_unlimited(2**96 - 1)
+    assert is_unlimited(2**256 - 1 - 10**18)
+    assert not is_unlimited(2**96)
+    assert not is_unlimited(10**30)
+
+
+def test_pre_byzantium_receipt_is_rejected_clearly() -> None:
+    import json as _json
+    from pathlib import Path as _Path
+
+    from app.blockchain.decoder import UnsupportedTransaction, decode_transaction
+    from app.models.blockchain import RawTransaction
+
+    raw = RawTransaction.model_validate_json(
+        _Path("evals/cases/ethereum-recorded.json").read_text()
+    )
+    receipt = _json.loads(raw.receipt_json)
+    receipt.pop("status")
+    old = raw.model_copy(update={"receipt_json": _json.dumps(receipt)})
+    with pytest.raises(UnsupportedTransaction, match="Pre-Byzantium"):
+        decode_transaction(old)

@@ -19,10 +19,19 @@ async def enrich_tokens(decoded: DecodedEvidence, rpc: RpcClient, prefix: str) -
 
     async def metadata(token: str) -> tuple[str, str | None, int | None, Evidence | None]:
         try:
-            decimals_raw, symbol_raw = await asyncio.gather(
-                rpc.call("eth_call", [{"to": token, "data": "0x313ce567"}, block]),
-                rpc.call("eth_call", [{"to": token, "data": "0x95d89b41"}, block]),
-            )
+            tag = block
+            try:
+                decimals_raw, symbol_raw = await asyncio.gather(
+                    rpc.call("eth_call", [{"to": token, "data": "0x313ce567"}, tag]),
+                    rpc.call("eth_call", [{"to": token, "data": "0x95d89b41"}, tag]),
+                )
+            except RpcError:
+                # Pruned historical state: metadata rarely changes, so read it at latest.
+                tag = "latest"
+                decimals_raw, symbol_raw = await asyncio.gather(
+                    rpc.call("eth_call", [{"to": token, "data": "0x313ce567"}, tag]),
+                    rpc.call("eth_call", [{"to": token, "data": "0x95d89b41"}, tag]),
+                )
             decimals = int(decimals_raw, 16)
             if len(decimals_raw) != 66 or not 0 <= decimals <= 255:
                 raise ValueError("Invalid token decimals")
@@ -35,13 +44,15 @@ async def enrich_tokens(decoded: DecodedEvidence, rpc: RpcClient, prefix: str) -
             evidence = Evidence(
                 id=f"{prefix}:token:{token}",
                 source="eth_call decimals/symbol",
-                description="Contract-reported token metadata at block end",
+                description="Contract-reported token metadata at block end"
+                if tag == block
+                else "Contract-reported token metadata at latest block",
                 data_json=json.dumps(
-                    {"token": token, "decimals": decimals, "symbol": symbol, "block": block}
+                    {"token": token, "decimals": decimals, "symbol": symbol, "block": tag}
                 ),
             )
             return token, symbol, decimals, evidence
-        except (RpcError, ValueError, DecodingError, UnicodeError):
+        except (RpcError, ValueError, TypeError, AttributeError, DecodingError, UnicodeError):
             return token, None, None, None
 
     results = await asyncio.gather(*(metadata(token) for token in tokens[:12]))

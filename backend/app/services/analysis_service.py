@@ -11,7 +11,7 @@ from app.agents.service import interpret
 from app.blockchain.calldata import decode_calldata
 from app.blockchain.chains import chains
 from app.blockchain.contract_inspector import inspect_contract
-from app.blockchain.decoder import decode_transaction
+from app.blockchain.decoder import UnsupportedTransaction, decode_transaction
 from app.blockchain.exposure_analyzer import analyze_exposure
 from app.blockchain.rpc_client import RpcClient, RpcError
 from app.blockchain.token_metadata import enrich_tokens
@@ -97,7 +97,7 @@ class AnalysisService:
             try:
                 async with asyncio.timeout(180):
                     await self._analyze(job)
-            except (TransactionUnavailable, RpcError) as exc:
+            except (TransactionUnavailable, UnsupportedTransaction, RpcError) as exc:
                 await self.fail(job, str(exc))
             except TimeoutError:
                 await self.fail(job, "Analysis exceeded its time limit. Please retry.")

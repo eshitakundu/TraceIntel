@@ -46,6 +46,8 @@ class RpcClient:
                             "params": params,
                         },
                     )
+                    if response.status_code in (401, 403):
+                        raise RpcError("RPC provider rejected the request credentials.")
                     if response.status_code == 429 or response.status_code >= 500:
                         if attempt < 2:
                             await asyncio.sleep(0.25 * (2**attempt))
@@ -55,10 +57,13 @@ class RpcClient:
                     if not isinstance(body, dict) or body.get("id") != request_id:
                         raise RpcError("Invalid RPC response envelope.")
                     if "error" in body:
-                        raise RpcError(
-                            "RPC provider could not complete the operation.",
-                            body["error"].get("code"),
-                        )
+                        error = body["error"]
+                        code = error.get("code") if isinstance(error, dict) else None
+                        # -32005 is the conventional JSON-RPC "limit exceeded" code.
+                        if code == -32005 and attempt < 2:
+                            await asyncio.sleep(0.25 * (2**attempt))
+                            continue
+                        raise RpcError("RPC provider could not complete the operation.", code)
                     if "result" not in body:
                         raise RpcError("RPC result is missing.")
                     return body["result"]

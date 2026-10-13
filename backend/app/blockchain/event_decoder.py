@@ -13,6 +13,13 @@ OPERATOR = "0x" + keccak(text="ApprovalForAll(address,address,bool)").hex()
 SINGLE = "0x" + keccak(text="TransferSingle(address,address,address,uint256,uint256)").hex()
 BATCH = "0x" + keccak(text="TransferBatch(address,address,address,uint256[],uint256[])").hex()
 MAX_UINT256 = 2**256 - 1
+# Wallets and tokens signal "infinite" with sentinels, not only uint256 max: UNI/COMP-style
+# tokens cap allowances at uint96, and some tokens decrement an infinite allowance.
+UINT96_MAX = 2**96 - 1
+
+
+def is_unlimited(amount: int) -> bool:
+    return amount == UINT96_MAX or amount >= 2**255
 
 
 def address(topic: str) -> str:
@@ -69,7 +76,7 @@ def decode_events(
                             owner=sender,
                             spender=recipient,
                             amount_raw=str(amount),
-                            unlimited=not nft and amount == MAX_UINT256,
+                            unlimited=not nft and is_unlimited(amount),
                             evidence_ids=(eid,),
                         )
                     )

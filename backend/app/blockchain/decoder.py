@@ -13,6 +13,10 @@ from app.models.blockchain import (
 )
 
 
+class UnsupportedTransaction(ValueError):
+    """A transaction the pipeline cannot describe faithfully."""
+
+
 def decode_transaction(raw: RawTransaction) -> DecodedEvidence:
     tx, receipt, block = (
         json.loads(raw.transaction_json),
@@ -20,6 +24,10 @@ def decode_transaction(raw: RawTransaction) -> DecodedEvidence:
         json.loads(raw.block_json),
     )
     prefix = f"{raw.chain}:{raw.tx_hash}"
+    if "status" not in receipt:
+        raise UnsupportedTransaction(
+            "Pre-Byzantium receipts have no status field, so execution cannot be verified."
+        )
     status = int(receipt["status"], 16)
     if status not in (0, 1):
         raise ValueError("Invalid receipt status")
