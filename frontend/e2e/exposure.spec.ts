@@ -16,6 +16,7 @@ test("explains the two timeframes and provides read-only analysis", async ({
   ).toBeVisible();
   await page.screenshot({
     path: "../docs/screenshots/landing.png",
+    animations: "disabled",
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -26,6 +27,7 @@ test("explains the two timeframes and provides read-only analysis", async ({
   ).toBe(true);
   await page.screenshot({
     path: "../docs/screenshots/landing-mobile.png",
+    animations: "disabled",
     fullPage: true,
   });
 });

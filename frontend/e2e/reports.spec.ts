@@ -10,6 +10,7 @@ test("@live analyzes a real Ethereum sample and retrieves the stored report", as
   await expect(page.getByText("API connected")).toBeVisible();
   await page.screenshot({
     path: "../docs/screenshots/landing.png",
+    animations: "disabled",
     fullPage: true,
   });
   await page
@@ -72,7 +73,10 @@ test("@live renders approval evidence and validated NOOA interpretation", async 
   expect(report.exposure.permissions).toHaveLength(13);
   expect(report.exposure.coverage.status).toBe("available");
   await expect(page.getByRole("heading", { name: "Then → Now" })).toBeVisible();
-  await page.screenshot({ path: "../docs/screenshots/exposure-dashboard.png" });
+  await page.screenshot({
+    path: "../docs/screenshots/exposure-dashboard.png",
+    animations: "disabled",
+  });
   await page
     .locator("#exposure")
     .screenshot({ path: "../.artifacts/exposure-comparison.png" });
@@ -97,7 +101,10 @@ test("@live renders approval evidence and validated NOOA interpretation", async 
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.screenshot({ path: "../docs/screenshots/exposure-mobile.png" });
+  await page.screenshot({
+    path: "../docs/screenshots/exposure-mobile.png",
+    animations: "disabled",
+  });
   if (process.env.TRACEINTEL_EXPECT_LIVE_AGENT)
     expect(report.interpretation.status).toBe("available");
 });

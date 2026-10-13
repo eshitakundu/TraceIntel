@@ -82,10 +82,12 @@ test("report and homepage fit desktop, tablet and mobile; favicon is served", as
         if (width === 1440)
           await page.screenshot({
             path: "../docs/screenshots/exposure-dashboard.png",
+            animations: "disabled",
           });
         if (width === 390)
           await page.screenshot({
             path: "../docs/screenshots/exposure-mobile.png",
+            animations: "disabled",
           });
       }
     }
