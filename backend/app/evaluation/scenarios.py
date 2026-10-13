@@ -53,6 +53,7 @@ IMPL_A, IMPL_B = "0x" + "a1" * 20, "0x" + "b2" * 20
 SPENDER = "0x" + "5e" * 20
 KEY = "0x" + "e0" * 20
 UNISWAP_V3_ROUTER = "0xe592427a0aece92de3edee1f18e0157c05861564"
+MORPHO_BLUE = "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb"
 WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 
 
@@ -74,6 +75,8 @@ class World:
     admin: str | None = None
     history: bool = True
     symbol: str = "WETH"
+    # The owner later approved an unlimited amount (the recorded sample does this).
+    raised_to_unlimited: bool = False
 
 
 @dataclass(frozen=True)
@@ -122,6 +125,12 @@ SCENARIOS = (
         World(unlimited=False),
         {"p0": "verify_spender"},
         must_cite=("p0",),
+    ),
+    Scenario(
+        "recognised protocol, allowance raised to unlimited since",
+        World(spender=MORPHO_BLUE, unlimited=False, raised_to_unlimited=True),
+        {"p0": "consider_revoking"},
+        must_cite=("p0", "p0:known"),
     ),
     Scenario("allowance already revoked", World(revoked=True), {}, must_cite=("p0",)),
     Scenario(
@@ -220,7 +229,13 @@ def build(world: World) -> Built:
         )
         weth = approval.token == WETH
         current = CurrentPermissionState(
-            allowance_raw=approval.amount_raw if live else "0",
+            allowance_raw=(
+                "0"
+                if not live
+                else str(MAX_UINT256)
+                if mine and world.raised_to_unlimited
+                else approval.amount_raw
+            ),
             balance_raw=str(5 * 10**18) if mine else "0",
             spender_has_code=world.code_now != "0x",
             symbol=world.symbol if weth else None,

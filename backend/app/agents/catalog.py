@@ -56,6 +56,8 @@ def is_live(permission: PersistentExposure) -> bool:
 class Catalog:
     claims: list[CitedClaim] = field(default_factory=list)
     targets: dict[str, PersistentExposure] = field(default_factory=dict)
+    # Risk claims from rules that contribute points (as opposed to zero-point notes).
+    scored: set[str] = field(default_factory=set)
 
     def add(self, claim: CitedClaim) -> None:
         if all(existing.id != claim.id for existing in self.claims):
@@ -212,6 +214,8 @@ def build_catalog(
             continue
         signals.setdefault(signal.code, []).extend(signal.evidence_ids)
         texts[signal.code] = f"{signal.title}: {signal.description}"
+        if signal.score:
+            catalog.scored.add(f"risk:{signal.code.lower()}")
     for code, evidence in signals.items():
         catalog.add(
             CitedClaim(

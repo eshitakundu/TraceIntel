@@ -11,6 +11,7 @@ from nooa import Agent, PredictStrategy, strategy
 from nooa.config import PredictConfig
 
 from app.agents.catalog import Catalog
+from app.blockchain.event_decoder import is_unlimited
 from app.models.interpretation import ActionKind, ActionPick, CitedClaim, ReportDraft
 
 
@@ -61,29 +62,50 @@ def baseline_brief(catalog: Catalog, facts: dict[str, dict[str, Any]]) -> Report
     # even if it is no longer live; otherwise with the transaction overview.
     focus = list(live) or owned
     actions: list[ActionPick] = []
-    findings: list[str] = []
+    risky_findings: list[str] = []
+    context_findings: list[str] = []
     for pid in live:
         permission = catalog.targets[pid]
         seen = facts.get(pid, {})
         evidence = [c for c in (f"{pid}:drift", f"{pid}:control", f"{pid}:spender") if c in claims]
+        verified_drift = "cannot be verified" not in getattr(claims.get(f"{pid}:drift"), "text", "")
         risky = (
             seen.get("drift") in ("upgraded", "code_changed")
             or seen.get("control") == "single_key"
             or seen.get("kind") in ("eoa", "delegated")
         )
-        action: ActionKind
-        if risky or permission.historical.unlimited:
+        current = permission.current.allowance_raw
+        # A permission is unlimited if it was granted that way or has since become so.
+        unlimited = permission.historical.unlimited or (
+            current is not None and is_unlimited(int(current))
+        )
+        action: ActionKind | None
+        if risky:
             action = "consider_revoking"
+            reasons = [pid, *[c for c in evidence if c != f"{pid}:drift" or verified_drift]]
+        elif unlimited:
+            action = "consider_revoking"
+            reasons = [pid, *[c for c in (f"{pid}:reach", f"{pid}:known") if c in claims]]
         elif not seen.get("known"):
             action = "verify_spender"
+            reasons = [pid, *[c for c in (f"{pid}:known", f"{pid}:drift") if c in claims]]
         elif seen.get("proxy") and seen.get("control") != "contract":
             action = "review_upgrade_control"
+            reasons = [pid, *[c for c in (f"{pid}:control", f"{pid}:spender") if c in claims]]
         else:
-            continue
-        reasons = [pid, *[c for c in evidence if c != f"{pid}:spender" or risky]][:3]
-        actions.append(ActionPick(permission_id=pid, action=action, because=reasons))
+            action, reasons = None, []
+        if action:
+            actions.append(ActionPick(permission_id=pid, action=action, because=reasons[:3]))
         if risky:
-            findings += [c for c in evidence if c not in findings]
+            risky_findings += [c for c in evidence if c not in risky_findings]
+        context_findings += [
+            c
+            for c in (f"{pid}:known", f"{pid}:drift" if verified_drift else "", f"{pid}:spender")
+            if c in claims and c not in risky_findings
+        ]
+    # Investigation results first, then scored risk rules; zero-point notes last.
+    findings = list(dict.fromkeys(risky_findings + context_findings))
+    findings += [c for c in claims if c in catalog.scored and c not in findings]
     summary = [c for pid in focus[:1] for c in (pid, f"{pid}:reach") if c in claims] or [
         c for c in ("tx:approvals", "tx:status") if c in claims
     ][:1]
