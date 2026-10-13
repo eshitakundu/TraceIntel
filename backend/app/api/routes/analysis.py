@@ -1,4 +1,5 @@
 import hashlib
+import ipaddress
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -12,6 +13,17 @@ from app.models.report import AnalysisJob, AnalysisRequest, Report
 from app.services.analysis_service import AnalysisService, CapacityError
 
 router = APIRouter()
+
+
+def client_bucket(ip: str) -> str:
+    """Rate-limit identity. One IPv6 subscriber typically controls a whole /64."""
+    try:
+        address = ipaddress.ip_address(ip)
+    except ValueError:
+        return ip
+    if address.version == 6:
+        return str(ipaddress.ip_network(f"{address}/64", strict=False))
+    return str(address)
 
 
 def service(request: Request) -> AnalysisService:
@@ -42,7 +54,7 @@ async def analyze(payload: AnalysisRequest, request: Request) -> AnalysisJob:
     if trusted_proxy(request, app.settings):
         ip = request.headers.get("x-traceintel-client-ip", ip)
     hour = datetime.now(UTC).strftime("%Y-%m-%dT%H")
-    key = f"ip:{hashlib.sha256(ip.encode()).hexdigest()}:{hour}"
+    key = f"ip:{hashlib.sha256(client_bucket(ip).encode()).hexdigest()}:{hour}"
     if not await app.repository.reserve_budget(key, app.settings.requests_per_hour):
         raise HTTPException(429, "Hourly request limit reached.", headers={"Retry-After": "3600"})
     try:

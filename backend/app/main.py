@@ -2,6 +2,7 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 import httpx
 from fastapi import FastAPI
@@ -14,9 +15,45 @@ from app.config import Settings
 from app.services.analysis_service import AnalysisService
 from app.storage.sql_repository import SqlReportRepository
 
+logger = logging.getLogger(__name__)
+# Leases expire after 60s, so three missed 15s heartbeats may mean another
+# worker can recover our jobs; stop local work before that can race.
+MAX_MISSED_HEARTBEATS = 3
+
+
+async def lease_heartbeat(
+    state: Any, repository: SqlReportRepository, interval: float = 15
+) -> None:
+    """Renew job leases forever. Fail closed while unhealthy, and heal when it recovers."""
+    missed = 0
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            async with asyncio.timeout(10):
+                await repository.renew_leases()
+                await repository.recover_interrupted()
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            missed += 1
+            state.lease_healthy = False
+            logger.error("lease heartbeat missed=%d error=%s", missed, type(exc).__name__)
+            if missed == MAX_MISSED_HEARTBEATS:
+                await state.analysis.close()
+            continue
+        if not state.lease_healthy:
+            logger.info("lease heartbeat recovered after %d missed", missed)
+        missed = 0
+        state.lease_healthy = True
+
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings()
+    if not logging.getLogger().handlers:
+        # Uvicorn only configures its own loggers; make application events visible too.
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
+        )
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
@@ -32,21 +69,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 application.state.lease_healthy = True
                 application.state.analysis = AnalysisService(repository, settings, client)
 
-                async def maintain_leases() -> None:
-                    try:
-                        while True:
-                            await asyncio.sleep(15)
-                            async with asyncio.timeout(10):
-                                await repository.renew_leases()
-                                await repository.recover_interrupted()
-                    except asyncio.CancelledError:
-                        raise
-                    except Exception:
-                        application.state.lease_healthy = False
-                        logging.getLogger(__name__).error("Job lease maintenance failed.")
-                        await application.state.analysis.close()
-
-                heartbeat = asyncio.create_task(maintain_leases())
+                heartbeat = asyncio.create_task(lease_heartbeat(application.state, repository))
                 try:
                     yield
                 finally:

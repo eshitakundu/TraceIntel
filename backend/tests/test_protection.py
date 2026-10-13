@@ -18,3 +18,12 @@ def test_oversized_requests_do_not_start_jobs() -> None:
     with TestClient(create_app()) as client:
         response = client.post("/api/v1/analyses", content="x" * 4097)
         assert response.status_code == 413
+
+
+def test_ipv6_clients_share_a_slash_64_bucket() -> None:
+    from app.api.routes.analysis import client_bucket
+
+    assert client_bucket("203.0.113.7") == "203.0.113.7"
+    assert client_bucket("2001:db8:1:2::1") == client_bucket("2001:db8:1:2:ffff::9")
+    assert client_bucket("2001:db8:1:2::1") != client_bucket("2001:db8:1:3::1")
+    assert client_bucket("unknown") == "unknown"

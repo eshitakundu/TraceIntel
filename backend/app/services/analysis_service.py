@@ -1,6 +1,8 @@
 import asyncio
 import hashlib
 import logging
+import time
+import traceback
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -29,6 +31,21 @@ logger = logging.getLogger(__name__)
 
 class CapacityError(Exception):
     pass
+
+
+class LeaseLost(Exception):
+    """This process no longer owns the job; another worker may have recovered it."""
+
+
+def failure_site(exc: BaseException) -> str:
+    """Where an unexpected error happened, without its message.
+
+    Exception messages can embed credential-bearing RPC URLs, so only the exception
+    type and the innermost application frames are logged.
+    """
+    frames = [f for f in traceback.extract_tb(exc.__traceback__) if "/app/" in f.filename]
+    where = " <- ".join(f"{f.filename.rsplit('/app/', 1)[1]}:{f.lineno}" for f in frames[-3:])
+    return f"{type(exc).__name__} at {where or 'unknown'}"
 
 
 class AnalysisService:
@@ -67,7 +84,8 @@ class AnalysisService:
                     "eth_getBlockByNumber", [hex(cached.decoded.transaction.block_number), False]
                 )
                 if not current or current.get("hash") != cached.decoded.transaction.block_hash:
-                    await self.fail(job, "Cached block changed; a fresh analysis is required.")
+                    if not await self.fail(job, "Cached block changed; reanalysis required."):
+                        raise RpcError("Cached analysis could not be invalidated.")
                     return await self.submit(request)
         if created:
             if not await self.repository.reserve_budget(
@@ -82,31 +100,44 @@ class AnalysisService:
                 )
                 await self.repository.update_job(failed)
                 raise CapacityError(failed.error)
-            task = asyncio.create_task(self.run(job))
+            task = asyncio.create_task(self.run(job, f"analyses:{day}"))
             self.tasks.add(task)
             task.add_done_callback(self.tasks.discard)
         return job
 
     async def stage(self, job: AnalysisJob, stage: str) -> AnalysisJob:
         updated = job.model_copy(update={"status": "running", "stage": stage})
-        await self.repository.update_job(updated)
+        if not await self.repository.update_job(updated):
+            raise LeaseLost(job.id)
+        logger.info("job=%s stage=%r", job.id, stage)
         return updated
 
-    async def run(self, job: AnalysisJob) -> None:
+    async def run(self, job: AnalysisJob, budget_key: str = "") -> None:
+        started = time.monotonic()
         async with self.semaphore:
             try:
                 async with asyncio.timeout(180):
                     await self._analyze(job)
-            except (TransactionUnavailable, UnsupportedTransaction, RpcError) as exc:
+                logger.info("job=%s complete ms=%d", job.id, (time.monotonic() - started) * 1000)
+            except LeaseLost:
+                logger.warning("job=%s lease lost; abandoning local work", job.id)
+            except TransactionUnavailable as exc:
+                # Nothing was analyzed, so a missing or pending hash does not spend daily capacity.
+                if budget_key:
+                    await self.repository.refund_budget(budget_key)
+                await self.fail(job, str(exc))
+            except (UnsupportedTransaction, RpcError) as exc:
+                logger.info("job=%s failed: %s", job.id, type(exc).__name__)
                 await self.fail(job, str(exc))
             except TimeoutError:
+                logger.warning("job=%s timed out", job.id)
                 await self.fail(job, "Analysis exceeded its time limit. Please retry.")
             except Exception as exc:
-                logger.error("Analysis failed (%s)", type(exc).__name__)
+                logger.error("job=%s failed: %s", job.id, failure_site(exc))
                 await self.fail(job, "Analysis could not complete safely. Please retry.")
 
-    async def fail(self, job: AnalysisJob, reason: str) -> None:
-        await self.repository.update_job(
+    async def fail(self, job: AnalysisJob, reason: str) -> bool:
+        return await self.repository.update_job(
             job.model_copy(update={"status": "failed", "stage": "Failed", "error": reason})
         )
 
@@ -216,11 +247,12 @@ class AnalysisService:
             exposure=exposure,
         )
         await self.repository.save_report(report)
-        await self.repository.update_job(
+        if not await self.repository.update_job(
             job.model_copy(
                 update={"status": "complete", "stage": "Complete", "report_id": report.id}
             )
-        )
+        ):
+            raise LeaseLost(job.id)
 
     async def close(self) -> None:
         for task in self.tasks:

@@ -44,12 +44,13 @@ class SqlReportRepository:
             row = await session.get(JobRow, job_id)
             return AnalysisJob.model_validate_json(row.payload) if row else None
 
-    async def update_job(self, job: AnalysisJob) -> None:
+    async def update_job(self, job: AnalysisJob) -> bool:
+        """Apply a job update; False when this process no longer owns the job's lease."""
         async with self.sessions.begin() as session:
             values: dict[str, object] = {"status": job.status, "payload": job.model_dump_json()}
             if job.status == "failed":
                 values["cache_key"] = None
-            await session.execute(
+            result = await session.execute(
                 update(JobRow)
                 .where(
                     JobRow.id == job.id,
@@ -62,6 +63,7 @@ class SqlReportRepository:
                 )
                 .values(**values)
             )
+            return bool(result.rowcount)  # type: ignore[attr-defined]
 
     async def save_report(self, report: Report) -> None:
         async with self.sessions.begin() as session:
@@ -88,6 +90,14 @@ class SqlReportRepository:
             accepted = result.scalar_one_or_none() is not None
             await session.commit()
             return accepted
+
+    async def refund_budget(self, key: str) -> None:
+        async with self.sessions.begin() as session:
+            await session.execute(
+                update(BudgetRow)
+                .where(BudgetRow.key == key, BudgetRow.used > 0)
+                .values(used=BudgetRow.used - 1)
+            )
 
     async def renew_leases(self) -> None:
         async with self.sessions.begin() as session:

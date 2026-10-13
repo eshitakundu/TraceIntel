@@ -36,6 +36,9 @@ async def test_repository_deduplicates_and_recovers(tmp_path) -> None:
         *(repo.reserve_budget(prefix + "daily", 3) for _ in range(8))
     )
     assert sum(reservations) == 3
+    await repo.refund_budget(prefix + "daily")
+    assert await repo.reserve_budget(prefix + "daily", 3)
+    assert not await repo.reserve_budget(prefix + "daily", 3)
     replacement = SqlReportRepository(engine)
     await replacement.recover_interrupted()
     still_running = await repo.get_job(prefix + "one")
@@ -50,8 +53,10 @@ async def test_repository_deduplicates_and_recovers(tmp_path) -> None:
     with pytest.raises(RuntimeError, match="expired"):
         await repo.renew_leases()
     await replacement.recover_interrupted()
-    # A delayed old worker must not resurrect a recovered terminal job.
-    await repo.update_job(job.model_copy(update={"status": "complete", "stage": "Complete"}))
+    # A delayed old worker must not resurrect a recovered terminal job, and learns it lost it.
+    assert not await repo.update_job(
+        job.model_copy(update={"status": "complete", "stage": "Complete"})
+    )
     recovered = await repo.get_job(prefix + "one")
     assert recovered and recovered.status == "failed"
     _, new = await repo.submit(
