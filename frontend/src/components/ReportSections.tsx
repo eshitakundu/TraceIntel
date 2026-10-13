@@ -80,7 +80,18 @@ export function Approvals({ report }: { report: Report }) {
         report.decoded.approvals.map((approval, index) => (
           <article className="approval-card" key={index}>
             <div className="section-heading">
-              <strong>{approval.standard} permission</strong>
+              <strong>
+                {approval.standard} permission
+                {approval.owner_role && (
+                  <span className={"role role-" + approval.owner_role}>
+                    {approval.owner_role === "sender"
+                      ? "granted by the sender"
+                      : approval.owner_role === "called_contract"
+                        ? "granted by the called contract"
+                        : "granted by another contract"}
+                  </span>
+                )}
+              </strong>
               <span className={approval.unlimited ? "badge high" : "badge"}>
                 {approval.unlimited
                   ? "UNLIMITED / ALL"
@@ -121,17 +132,34 @@ export function Contracts({ report }: { report: Report }) {
           <article className="contract-card" key={contract.address}>
             <div className="section-heading">
               <code className="hash">{contract.address}</code>
-              <span className="badge">{contract.kind.replace("_", " ")}</span>
+              <span className="badge">
+                {contract.kind === "delegated_eoa"
+                  ? "EIP-7702 delegated EOA"
+                  : contract.kind.replace("_", " ")}
+              </span>
             </div>
             <dl className="contract-facts">
               <dt>Source verification</dt>
               <dd>{contract.verification}</dd>
               <dt>Proxy pattern</dt>
               <dd>{contract.proxy.replace("_", " ")}</dd>
-              <dt>Implementation</dt>
+              <dt>
+                {contract.kind === "delegated_eoa"
+                  ? "Delegates to"
+                  : "Implementation"}
+              </dt>
               <dd className="hash">
                 {contract.implementation ?? "Not identified"}
               </dd>
+              {contract.state === "current" && (
+                <>
+                  <dt>State read at</dt>
+                  <dd>
+                    Latest block (the provider no longer serves the transaction
+                    block)
+                  </dd>
+                </>
+              )}
             </dl>
             <EvidenceLinks ids={contract.evidence_ids} />
           </article>
@@ -176,24 +204,30 @@ export function RawEvidence({ report }: { report: Report }) {
     <section className="report-section" id="evidence">
       <h2>
         Raw evidence{" "}
-        <span className="count">{report.decoded.evidence.length}</span>
+        <span className="count">
+          {report.decoded.evidence.length +
+            (report.exposure?.evidence.length ?? 0) +
+            (report.interpretation.investigation?.evidence.length ?? 0)}
+        </span>
       </h2>
-      {[...report.decoded.evidence, ...(report.exposure?.evidence ?? [])].map(
-        (evidence) => (
-          <details
-            className="raw-evidence"
-            id={"evidence-" + evidence.id}
-            key={evidence.id}
-          >
-            <summary>
-              <span>{evidence.description}</span>
-              <code>{evidence.id.split(":").slice(2).join(":")}</code>
-            </summary>
-            <p>{evidence.source}</p>
-            <pre>{JSON.stringify(JSON.parse(evidence.data_json), null, 2)}</pre>
-          </details>
-        ),
-      )}
+      {[
+        ...report.decoded.evidence,
+        ...(report.exposure?.evidence ?? []),
+        ...(report.interpretation.investigation?.evidence ?? []),
+      ].map((evidence) => (
+        <details
+          className="raw-evidence"
+          id={"evidence-" + evidence.id}
+          key={evidence.id}
+        >
+          <summary>
+            <span>{evidence.description}</span>
+            <code>{evidence.id.split(":").slice(2).join(":")}</code>
+          </summary>
+          <p>{evidence.source}</p>
+          <pre>{JSON.stringify(JSON.parse(evidence.data_json), null, 2)}</pre>
+        </details>
+      ))}
     </section>
   );
 }

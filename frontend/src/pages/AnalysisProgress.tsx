@@ -18,7 +18,7 @@ const stages = [
   "Inspecting contracts",
   "Evaluating deterministic signals",
   "Checking current approval exposure",
-  "Running NOOA intelligence analysis",
+  "Investigating live permissions",
   "Generating report",
   "Complete",
 ];

@@ -17,9 +17,15 @@ const meter = (ratio: number) =>
   ({
     "--fill": Math.round(Math.min(Math.max(ratio, 0), 1) * 100) + "%",
   }) as CSSProperties;
+const UINT96_MAX = (1n << 96n) - 1n;
+/** Wallets signal "infinite" with uint256 max, uint96 max (UNI/COMP) or near-max values. */
+function isUnlimited(raw: string) {
+  const value = BigInt(raw);
+  return value === UINT96_MAX || value >= 1n << 255n;
+}
 function amount(value: string | null, decimals: number | null) {
   if (value === null) return "Unavailable";
-  if (value === ((1n << 256n) - 1n).toString()) return "Unlimited";
+  if (isUnlimited(value)) return "Unlimited";
   return formatCompactUnits(value, decimals);
 }
 function distinctPermissions(report: Report) {
@@ -30,9 +36,33 @@ function distinctPermissions(report: Report) {
   }
   return [...values.values()];
 }
+/** Permissions the sender controls: their own, or the called contract's (possibly their
+ * smart wallet). Reports created before ownership was classified treat all as theirs. */
+function ownedBySender(permission: PersistentExposure) {
+  return permission.historical.owner_role !== "other";
+}
+function granter(permission: PersistentExposure) {
+  const owner = permission.historical.owner;
+  switch (permission.historical.owner_role) {
+    case "sender":
+      return "Granted by the sender";
+    case "called_contract":
+      return (
+        "Granted by the called contract " +
+        short(owner) +
+        " (possibly your smart wallet)"
+      );
+    case "other":
+      return "Granted by contract " + short(owner) + " during the transaction";
+    default:
+      return "Owner " + short(owner);
+  }
+}
 
 export function ExposureMetrics({ report }: { report: Report }) {
-  const permissions = distinctPermissions(report);
+  const all = distinctPermissions(report);
+  const permissions = all.filter(ownedBySender);
+  const others = all.length - permissions.length;
   const active = permissions.filter((p) => p.permission_active === true).length;
   const unknown = permissions.filter(
     (p) => p.permission_active === null,
@@ -75,6 +105,11 @@ export function ExposureMetrics({ report }: { report: Report }) {
             ? permissions.length + " distinct permissions checked"
             : "No ERC-20 permission comparison available"}
         </p>
+        {others > 0 && (
+          <p className="metric-aside">
+            + {others} held by other contracts in this transaction
+          </p>
+        )}
       </article>
       <article className="metric-card">
         <span className="label">EVIDENCE COVERAGE</span>
@@ -101,7 +136,13 @@ export default function ExposurePanel({ report }: { report: Report }) {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
   const exposure = report.exposure;
-  const permissions = distinctPermissions(report);
+  const all = distinctPermissions(report);
+  const permissions = all.filter(ownedBySender);
+  const others = all.filter((p) => !ownedBySender(p));
+  const revokeUrl =
+    report.chain === "ethereum"
+      ? `https://revoke.cash/address/${report.decoded.transaction.sender}?chainId=1`
+      : null;
   async function refresh() {
     setBusy(true);
     setMessage("");
@@ -137,7 +178,7 @@ export default function ExposurePanel({ report }: { report: Report }) {
         · Saved evidence, not continuous monitoring.
       </p>
       {message && <p role="status">{message}</p>}
-      {!permissions.length ? (
+      {!all.length ? (
         <div className="exposure-empty">
           <span>◈</span>
           <h3>
@@ -153,8 +194,13 @@ export default function ExposurePanel({ report }: { report: Report }) {
         </div>
       ) : (
         <>
+          {!permissions.length && (
+            <p className="note">
+              The sender granted no ERC-20 permissions in this transaction.
+            </p>
+          )}
           {(expanded ? permissions : permissions.slice(0, 3)).map((p) => (
-            <PermissionCard key={p.id} permission={p} />
+            <PermissionCard key={p.id} permission={p} revokeUrl={revokeUrl} />
           ))}
           {permissions.length > 3 && (
             <button
@@ -165,6 +211,22 @@ export default function ExposurePanel({ report }: { report: Report }) {
                 ? "Show fewer permissions"
                 : "Show all " + permissions.length + " permissions"}
             </button>
+          )}
+          {others.length > 0 && (
+            <details className="other-owners">
+              <summary>
+                {others.length} more{" "}
+                {others.length === 1 ? "permission was" : "permissions were"}{" "}
+                granted by other contracts during this transaction
+              </summary>
+              <p className="note">
+                These belong to the contracts that granted them, not to the
+                sender, so they are shown for completeness and not scored.
+              </p>
+              {others.map((p) => (
+                <PermissionCard key={p.id} permission={p} revokeUrl={null} />
+              ))}
+            </details>
           )}
           <details className="exposure-method">
             <summary>How to read this comparison</summary>
@@ -180,10 +242,10 @@ export default function ExposurePanel({ report }: { report: Report }) {
               inferred.
             </p>
             <p>
-              {exposure?.permissions.length} historical events ·{" "}
-              {permissions.length} distinct token / owner / spender permissions.
-              The last event for each permission is shown here; all events
-              remain in Approvals and downloaded JSON.
+              {exposure?.permissions.length} historical events · {all.length}{" "}
+              distinct token / owner / spender permissions. The last event for
+              each permission is shown here; all events remain in Approvals and
+              downloaded JSON.
             </p>
           </details>
         </>
@@ -191,7 +253,13 @@ export default function ExposurePanel({ report }: { report: Report }) {
     </section>
   );
 }
-function PermissionCard({ permission: p }: { permission: PersistentExposure }) {
+function PermissionCard({
+  permission: p,
+  revokeUrl,
+}: {
+  permission: PersistentExposure;
+  revokeUrl: string | null;
+}) {
   const h = p.historical,
     c = p.current;
   return (
@@ -205,6 +273,7 @@ function PermissionCard({ permission: p }: { permission: PersistentExposure }) {
               <small>{c.name ?? "Token label unavailable"}</small>
             </h3>
             <code title={h.token}>{short(h.token)}</code>
+            <span className="granter">{granter(p)}</span>
           </div>
         </div>
         <span className={"exposure-badge state-" + p.status}>
@@ -219,7 +288,7 @@ function PermissionCard({ permission: p }: { permission: PersistentExposure }) {
           </strong>
           <small>
             {h.unlimited
-              ? "Maximum uint256 allowance"
+              ? "Unlimited allowance sentinel"
               : c.decimals === null
                 ? "Raw token units"
                 : "Token units using current reported decimals"}
@@ -259,6 +328,16 @@ function PermissionCard({ permission: p }: { permission: PersistentExposure }) {
         </div>
       </div>
       <p className="exposure-takeaway">{p.summary}</p>
+      {revokeUrl && p.permission_active && (
+        <a
+          className="button secondary revoke-link"
+          href={revokeUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Review on revoke.cash ↗
+        </a>
+      )}
       <div className="permission-context">
         <div>
           <span>Owner balance now</span>

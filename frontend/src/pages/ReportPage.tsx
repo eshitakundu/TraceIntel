@@ -7,6 +7,8 @@ import { getReport } from "../api/analysis";
 import type { Report } from "../types/report";
 import EvidenceLinks from "../components/EvidenceLinks";
 import ExposurePanel, { ExposureMetrics } from "../components/ExposurePanel";
+import AgentBriefing from "../components/AgentBriefing";
+import AgentTrace from "../components/AgentTrace";
 import {
   Approvals,
   AssetMovements,
@@ -17,30 +19,21 @@ import {
 
 const sections = [
   "exposure",
+  "interpretation",
   "overview",
   "movements",
   "approvals",
   "contracts",
   "risk",
-  "interpretation",
   "coverage",
   "evidence",
 ] as const;
 const sectionNames: Record<string, string> = {
   exposure: "Then → Now",
+  interpretation: "Agent trace",
   risk: "Historical risk",
-  interpretation: "NOOA interpretation",
   coverage: "Evidence coverage",
   evidence: "Technical evidence",
-};
-const checks: Record<string, string> = {
-  verify_spender: "Verify the spender address and intended permissions.",
-  review_allowance:
-    "Check the current allowance and whether it is still needed.",
-  review_implementation:
-    "Review the proxy implementation and upgrade authority.",
-  compare_explorer: "Compare the report with an independent block explorer.",
-  check_missing_data: "Resolve coverage gaps before drawing conclusions.",
 };
 export default function ReportPage() {
   const { id = "" } = useParams();
@@ -75,10 +68,13 @@ export default function ReportPage() {
     );
   if (!report) return <p role="status">Loading stored report…</p>;
   const tx = report.decoded.transaction;
-  const gaps = report.coverage.filter(
+  const coverage = [
+    ...report.coverage,
+    ...(report.interpretation.investigation?.coverage ?? []),
+  ];
+  const gaps = coverage.filter(
     (item) => item.status === "partial" || item.status === "unavailable",
   );
-  const interpretation = report.interpretation.result;
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(location.href);
@@ -116,6 +112,7 @@ export default function ReportPage() {
           </div>
         </div>
       </section>
+      <AgentBriefing report={report} />
       <ExposureMetrics report={report} />
       <div className="report-actions">
         <a
@@ -152,6 +149,7 @@ export default function ReportPage() {
         </nav>
         <div className="report-content">
           <ExposurePanel report={report} />
+          <AgentTrace report={report} />
           <section className="report-section" id="overview">
             <div className="section-heading">
               <h2>What happened</h2>
@@ -203,52 +201,6 @@ export default function ReportPage() {
           <Approvals report={report} />
           <Contracts report={report} />
           <RiskEvidence report={report} />
-          <section className="report-section" id="interpretation">
-            <div className="section-heading">
-              <h2>NOOA interpretation</h2>
-              <span className="badge">{report.interpretation.status}</span>
-            </div>
-            <p className="note">
-              Evidence-grounded interpretation. Blockchain facts, risk signals
-              and exposure states are determined by code.
-            </p>
-            {interpretation ? (
-              <>
-                <p className="note">
-                  Model: {report.interpretation.model}. Selection confidence:{" "}
-                  {Math.round(interpretation.confidence * 100)}%.
-                </p>
-                {interpretation.summary.map((claim) => (
-                  <p key={claim.id}>
-                    {claim.text} <EvidenceLinks ids={claim.evidence_ids} />
-                  </p>
-                ))}
-                <h3>Important findings</h3>
-                {interpretation.important_findings.map((claim) => (
-                  <p key={claim.id}>
-                    {claim.text} <EvidenceLinks ids={claim.evidence_ids} />
-                  </p>
-                ))}
-                <h3>Recommended checks</h3>
-                <ul>
-                  {interpretation.recommended_checks.map((check) => (
-                    <li key={check}>{checks[check] ?? check}</li>
-                  ))}
-                </ul>
-                <h3>Uncertainty</h3>
-                {interpretation.uncertainties.map((claim) => (
-                  <p key={claim.id}>
-                    {claim.text} <EvidenceLinks ids={claim.evidence_ids} />
-                  </p>
-                ))}
-              </>
-            ) : (
-              <p>
-                {report.interpretation.reason} All deterministic facts and
-                signals remain available.
-              </p>
-            )}
-          </section>
           <section className="report-section" id="coverage">
             <h2>Completeness & limitations</h2>
             <div className="coverage-banner">
@@ -264,7 +216,7 @@ export default function ReportPage() {
               <a href="#coverage">Review coverage ↓</a>
             </div>
 
-            {report.coverage.map((item, index) => (
+            {coverage.map((item, index) => (
               <div className="coverage-row" key={index}>
                 <span className={"badge " + item.status}>
                   {item.status.replace("_", " ")}
@@ -278,7 +230,7 @@ export default function ReportPage() {
           </section>
           <RawEvidence report={report} />
           <p className="note">
-            Created {new Date(report.created_at).toLocaleString()} · Schema
+            Created {new Date(report.created_at).toLocaleString()} · Schema{" "}
             {report.schema_version} · Stored report
           </p>
         </div>

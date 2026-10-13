@@ -48,7 +48,10 @@ export interface Approval {
   amount_raw: string;
   unlimited: boolean;
   evidence_ids: string[];
+  owner_role?: OwnerRole | null;
 }
+/** Who granted a permission relative to the transaction sender. */
+export type OwnerRole = "sender" | "called_contract" | "other";
 export interface Contract {
   address: string;
   kind: string;
@@ -57,6 +60,7 @@ export interface Contract {
   proxy: string;
   implementation: string | null;
   abi_json: string | null;
+  state?: "historical" | "current";
   evidence_ids: string[];
 }
 export interface RiskSignal {
@@ -74,12 +78,37 @@ export interface CitedClaim {
   text: string;
   evidence_ids: string[];
 }
+export type ActionKind =
+  "consider_revoking" | "verify_spender" | "review_upgrade_control";
+export interface PermissionAction {
+  permission_id: string;
+  action: ActionKind;
+  reasons: CitedClaim[];
+}
+export interface TraceStep {
+  actor: "planner" | "tool" | "reporter" | "validator";
+  name: string;
+  detail: string;
+  status: "ok" | "rejected" | "error" | "skipped";
+  duration_ms: number;
+  claim_ids: string[];
+}
+export interface Investigation {
+  planner: "model" | "baseline";
+  claims: CitedClaim[];
+  evidence: Evidence[];
+  coverage: Coverage[];
+  rounds: number;
+  tool_calls: number;
+}
 export interface AgentSelection {
   summary: CitedClaim[];
   important_findings: CitedClaim[];
   uncertainties: CitedClaim[];
   recommended_checks: string[];
-  confidence: number;
+  /** Legacy reports only: a model self-reported number, never displayed. */
+  confidence?: number | null;
+  actions?: PermissionAction[];
 }
 export interface Report {
   schema_version: string;
@@ -110,6 +139,11 @@ export interface Report {
     model: string | null;
     result: AgentSelection | null;
     reason: string | null;
+    author?: "model" | "baseline" | null;
+    investigation?: Investigation | null;
+    trace?: TraceStep[];
+    llm_calls?: number;
+    duration_ms?: number;
   };
 }
 export interface Job {
@@ -154,6 +188,7 @@ export interface PersistentExposure {
     block_number: number;
     timestamp: number;
     evidence_ids: string[];
+    owner_role?: OwnerRole | null;
   };
   current: CurrentPermissionState;
   status: "ACTIVE" | "PARTIALLY_ACTIVE" | "REVOKED" | "SUPERSEDED" | "UNKNOWN";
