@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useActiveSection } from "../hooks/useActiveSection";
 import type { useHealth } from "../hooks/useHealth";
 import BackendStatus from "../components/BackendStatus";
 import { Link, useParams, useOutletContext } from "react-router-dom";
@@ -14,6 +15,24 @@ import {
   RiskEvidence,
 } from "../components/ReportSections";
 
+const sections = [
+  "exposure",
+  "overview",
+  "movements",
+  "approvals",
+  "contracts",
+  "risk",
+  "interpretation",
+  "coverage",
+  "evidence",
+] as const;
+const sectionNames: Record<string, string> = {
+  exposure: "Then → Now",
+  risk: "Historical risk",
+  interpretation: "NOOA interpretation",
+  coverage: "Evidence coverage",
+  evidence: "Technical evidence",
+};
 const checks: Record<string, string> = {
   verify_spender: "Verify the spender address and intended permissions.",
   review_allowance:
@@ -29,6 +48,7 @@ export default function ReportPage() {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
+  const active = useActiveSection(sections, report !== null);
   useEffect(() => {
     if (state !== "connected") return;
     const controller = new AbortController();
@@ -70,8 +90,8 @@ export default function ReportPage() {
   return (
     <>
       <div className="report-topline">
-        <Link to="/">← Workspace</Link>
-        <span className="label">STORED INTELLIGENCE REPORT</span>
+        <Link to="/">← New analysis</Link>
+        <span className="label">SAVED REPORT</span>
       </div>
       <section className="report-header">
         <div>
@@ -119,27 +139,14 @@ export default function ReportPage() {
       </div>
       <div className="report-layout">
         <nav className="report-nav" aria-label="Report sections">
-          {[
-            "exposure",
-            "overview",
-            "movements",
-            "approvals",
-            "contracts",
-            "risk",
-            "interpretation",
-            "coverage",
-            "evidence",
-          ].map((section) => (
-            <a href={"#" + section} key={section}>
-              {(
-                {
-                  exposure: "Then → Now",
-                  risk: "Historical risk",
-                  interpretation: "NOOA interpretation",
-                  coverage: "Evidence coverage",
-                  evidence: "Technical evidence",
-                } as Record<string, string>
-              )[section] ?? section}
+          {sections.map((section) => (
+            <a
+              href={"#" + section}
+              key={section}
+              className={active === section ? "active" : undefined}
+              aria-current={active === section ? "true" : undefined}
+            >
+              {sectionNames[section] ?? section}
             </a>
           ))}
         </nav>

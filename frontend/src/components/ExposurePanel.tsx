@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { submitAnalysis } from "../api/analysis";
 import { formatCompactUnits } from "../api/format";
@@ -13,6 +13,10 @@ const labels: Record<string, string> = {
   UNKNOWN: "Unknown",
 };
 const short = (value: string) => value.slice(0, 8) + "…" + value.slice(-6);
+const meter = (ratio: number) =>
+  ({
+    "--fill": Math.round(Math.min(Math.max(ratio, 0), 1) * 100) + "%",
+  }) as CSSProperties;
 function amount(value: string | null, decimals: number | null) {
   if (value === null) return "Unavailable";
   if (value === ((1n << 256n) - 1n).toString()) return "Unlimited";
@@ -43,8 +47,13 @@ export function ExposureMetrics({ report }: { report: Report }) {
         <div className="metric-value">
           {report.risk.score}
           <small>/100</small>
-          <span className="badge">{report.risk.level}</span>
+          <span className={"badge " + report.risk.level}>
+            {report.risk.level}
+          </span>
         </div>
+        <span className="meter" aria-hidden="true">
+          <i style={meter(report.risk.score / 100)} />
+        </span>
         <p>Indicators in the original transaction. Not a safety rating.</p>
       </article>
       <article className="metric-card current">
@@ -55,6 +64,11 @@ export function ExposureMetrics({ report }: { report: Report }) {
             {report.exposure ? "active permissions" : "Not checked"}
           </small>
         </div>
+        <span className="meter" aria-hidden="true">
+          <i
+            style={meter(permissions.length ? active / permissions.length : 0)}
+          />
+        </span>
         <p>
           {unknown ? unknown + " unknown · " : ""}
           {permissions.length
@@ -68,7 +82,14 @@ export function ExposureMetrics({ report }: { report: Report }) {
           {checked}
           <small>/{report.coverage.length} checks available</small>
         </div>
-        <p>Partial and missing evidence remain visible below.</p>
+        <span className="meter" aria-hidden="true">
+          <i
+            style={meter(
+              report.coverage.length ? checked / report.coverage.length : 0,
+            )}
+          />
+        </span>
+        <p>Gaps are listed in the report.</p>
       </article>
     </div>
   );
@@ -100,10 +121,7 @@ export default function ExposurePanel({ report }: { report: Report }) {
   return (
     <section className="report-section exposure-section" id="exposure">
       <div className="section-heading">
-        <div>
-          <span className="eyebrow">FOLLOW THE PERMISSION</span>
-          <h2>Then → Now</h2>
-        </div>
+        <h2>Then → Now</h2>
         <button
           className="secondary"
           disabled={busy}
@@ -214,7 +232,7 @@ function PermissionCard({ permission: p }: { permission: PersistentExposure }) {
           <EvidenceLinks ids={h.evidence_ids} />
         </div>
         <div className="comparison-arrow" aria-hidden="true">
-          →
+          <span />
         </div>
         <div className="comparison-side now">
           <span className="label">NOW / CURRENT ALLOWANCE</span>
