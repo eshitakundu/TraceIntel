@@ -86,8 +86,8 @@ export default function AnalysisProgress() {
                 index < current ? "done" : index === current ? "current" : ""
               }
             >
-              <span>
-                {index < current ? "✓" : String(index + 1).padStart(2, "0")}
+              <span className="keycap pixel">
+                {index < current ? "ok" : String(index + 1).padStart(2, "0")}
               </span>
               {stage}
             </li>
