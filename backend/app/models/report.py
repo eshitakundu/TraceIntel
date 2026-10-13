@@ -10,7 +10,8 @@ from app.models.risk import RiskAssessment
 
 class Report(FrozenModel):
     id: str
-    schema_version: str = "1.1.0"
+    # 1.2.0: owner roles, agent investigation, actions and trace.
+    schema_version: str = "1.2.0"
     created_at: datetime
     chain: str
     transaction_hash: TxHash
