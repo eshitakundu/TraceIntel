@@ -17,7 +17,8 @@ class RiskSignal(FrozenModel):
 
 
 class RiskAssessment(FrozenModel):
-    version: str = "1.0.0"
+    # 1.1.0: only approvals granted by the transaction sender are scored.
+    version: str = "1.1.0"
     score: int = Field(ge=0, le=100)
     level: Literal["minimal", "low", "moderate", "high", "critical"]
     signals: tuple[RiskSignal, ...]

@@ -104,3 +104,54 @@ async def test_eip7702_delegation_is_an_eoa_not_a_contract() -> None:
     assert contract.kind == "delegated_eoa"
     assert contract.implementation == "0x" + "a" * 40
     assert contract.state == "historical"
+
+
+def _recorded_with(*approvals: Approval) -> tuple:  # type: ignore[type-arg]
+    raw = RawTransaction.model_validate_json(Path("evals/cases/ethereum-recorded.json").read_text())
+    decoded = decode_transaction(raw)
+    return decoded.model_copy(update={"approvals": approvals}), decoded.transaction
+
+
+def test_owner_roles_and_only_sender_approvals_are_scored() -> None:
+    from app.blockchain.ownership import owner_role
+
+    decoded, tx = _recorded_with()
+    assert owner_role(tx.sender, tx) == "sender"
+    assert tx.recipient and owner_role(tx.recipient.upper(), tx) == "called_contract"
+    assert owner_role("0x" + "9" * 40, tx) == "other"
+    unlimited = Approval(
+        standard="ERC20",
+        token="0x" + "1" * 40,
+        owner="0x" + "9" * 40,
+        spender="0x" + "3" * 40,
+        amount_raw=str(2**256 - 1),
+        unlimited=True,
+        evidence_ids=("synthetic:other",),
+        owner_role="other",
+    )
+    risk = evaluate(decoded.model_copy(update={"approvals": (unlimited,)}), ())
+    assert risk.score == 0
+    assert [s.code for s in risk.signals if s.code == "APPROVAL_BY_OTHER_OWNER"]
+    mine = unlimited.model_copy(update={"owner": tx.sender, "owner_role": "sender"})
+    assert evaluate(decoded.model_copy(update={"approvals": (mine,)}), ()).score == 30
+
+
+def test_erc721_approval_semantics_use_the_approved_address() -> None:
+    decoded, tx = _recorded_with()
+    spender = "0x" + "3" * 40
+    contract = Contract(address=spender, kind="contract", evidence_ids=("synthetic:code",))
+    token_zero = Approval(
+        standard="ERC721",
+        token="0x" + "1" * 40,
+        owner=tx.sender,
+        spender=spender,
+        amount_raw="0",
+        unlimited=False,
+        evidence_ids=("synthetic:nft",),
+        owner_role="sender",
+    )
+    granted = evaluate(decoded.model_copy(update={"approvals": (token_zero,)}), (contract,))
+    assert any(s.code == "CONTRACT_SPENDER" for s in granted.signals)
+    cleared = token_zero.model_copy(update={"spender": "0x" + "0" * 40, "amount_raw": "7"})
+    risk = evaluate(decoded.model_copy(update={"approvals": (cleared,)}), (contract,))
+    assert not any(s.code == "CONTRACT_SPENDER" for s in risk.signals)

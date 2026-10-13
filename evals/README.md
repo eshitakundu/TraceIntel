@@ -3,7 +3,7 @@
 Run make evaluate: twelve offline cases verify historical findings, score stability, evidence references, unsupported-claim rejection and current exposure transitions.
 
 - Four labelled synthetic historical approval cases: maximum, finite, revoked and reverted.
-- One real Ethereum approval transaction: 13 approval events, two maximum values, historical score 40 without contract enrichment. Repeated events cannot inflate a rule's score.
+- One real Ethereum approval transaction: 13 approval events. Four are the sender's own finite WETH approvals; nine, including both maximum values, were granted by contracts acting during the transaction. Only the sender's approvals are scored (10 without contract enrichment). Repeated events cannot inflate a rule's score.
 - One adversarial grounding group: known claim accepted; altered claim text, ID and citation rejected.
 - Six labelled synthetic exposure transitions: unchanged maximum, reduced positive, zero, increased, unavailable and zero-to-zero.
 

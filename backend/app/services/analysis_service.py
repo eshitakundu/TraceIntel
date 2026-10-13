@@ -48,7 +48,7 @@ class AnalysisService:
         ).hexdigest()[:12]
         snapshot_bucket = int(datetime.now(UTC).timestamp()) // 300
         key = (
-            f"{request.chain}:{request.transaction_hash.lower()}:v1.2:{snapshot_bucket}:{config_id}"
+            f"{request.chain}:{request.transaction_hash.lower()}:v1.3:{snapshot_bucket}:{config_id}"
         )
         job = AnalysisJob(
             id=str(uuid4()),

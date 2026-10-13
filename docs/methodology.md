@@ -1,16 +1,19 @@
-# Risk methodology v1.0.0
+# Risk methodology v1.1.0
 
 Scores describe observed indicators, not maliciousness, loss probability, or safety.
 
 | Rule | Points | Trigger |
 |---|---:|---|
-| UNLIMITED_TOKEN_APPROVAL | 30 | Successful ERC20-pattern Approval equals 2^256 - 1 |
-| NFT_OPERATOR_APPROVAL | 30 | Successful ApprovalForAll is true |
-| TOKEN_APPROVAL | 10 | Positive finite ERC20-pattern Approval |
-| CONTRACT_SPENDER | 10 | Positive approval and spender bytecode at block end |
+| UNLIMITED_TOKEN_APPROVAL | 30 | Sender's ERC20-pattern Approval uses an unlimited sentinel |
+| NFT_OPERATOR_APPROVAL | 30 | Sender's ApprovalForAll is true |
+| TOKEN_APPROVAL | 10 | Sender's positive finite ERC20-pattern Approval |
+| CONTRACT_SPENDER | 10 | Sender granted a permission and the spender has contract bytecode |
+| APPROVAL_BY_OTHER_OWNER | 0 | Approvals owned by the called contract or other contracts |
 | UNVERIFIED_TARGET | 12 | Successful explorer lookup explicitly reports no source |
 | PROXY_DETECTED | 0 | Nonzero EIP-1967 implementation/beacon |
 | EXECUTION_STATUS | 0 | Receipt success/failure |
+
+Only approvals whose owner is the transaction sender are scored. Approvals owned by the contract the transaction called (which may be the sender's smart wallet, such as a Safe) or by other contracts acting mid-transaction are reported and checked, but they describe those owners' permissions, not the sender's. An ERC-721 approval grants a permission when the approved address is non-zero; the token ID is not an amount.
 
 Aggregate = min(100, sum(max(points) per distinct rule code)). Repeated logs cannot multiply a rule's contribution. Bands: 0 minimal, 1–19 low, 20–49 moderate, 50–79 high, 80–100 critical. No negative weights.
 

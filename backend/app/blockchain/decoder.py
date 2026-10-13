@@ -2,6 +2,7 @@ import json
 
 from app.blockchain.calldata import decode_calldata
 from app.blockchain.event_decoder import decode_events
+from app.blockchain.ownership import owner_role
 from app.models.blockchain import (
     Coverage,
     DecodedEvidence,
@@ -69,6 +70,10 @@ def decode_transaction(raw: RawTransaction) -> DecodedEvidence:
         ),
     )
     movements, approvals, logs, coverage = decode_events(receipt["logs"] if status else [], prefix)
+    approvals = tuple(
+        approval.model_copy(update={"owner_role": owner_role(approval.owner, transaction)})
+        for approval in approvals
+    )
     if status and int(tx["value"], 16) and (target or created):
         movements = (
             Movement(

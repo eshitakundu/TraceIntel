@@ -8,6 +8,7 @@ from typing import Any
 from eth_abi.abi import decode
 from eth_abi.exceptions import DecodingError
 
+from app.blockchain.ownership import ROLE_ORDER
 from app.blockchain.rpc_client import RpcClient, RpcError
 from app.models.blockchain import Approval, Coverage, DecodedEvidence
 from app.models.exposure import (
@@ -104,6 +105,9 @@ async def analyze_exposure(
             ),
         )
     keys = list(dict.fromkeys((a.token, a.owner, a.spender) for a in approvals))
+    roles = {(a.token, a.owner, a.spender): a.owner_role for a in approvals}
+    # The sender's own permissions get the bounded current-state reads first.
+    keys.sort(key=lambda key: ROLE_ORDER[roles[key]])
     evidence: list[ExposureEvidence] = []
     states: dict[tuple[str, str, str], CurrentPermissionState] = {}
     block: dict[str, Any] | None = None
@@ -265,6 +269,7 @@ async def analyze_exposure(
             block_number=decoded.transaction.block_number,
             timestamp=decoded.transaction.timestamp,
             evidence_ids=approval.evidence_ids,
+            owner_role=approval.owner_role,
         )
         permissions.append(
             compare_permission(

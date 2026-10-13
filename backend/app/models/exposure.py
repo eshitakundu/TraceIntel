@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from app.models.base import FrozenModel
-from app.models.blockchain import Address, Coverage, Evidence, TxHash
+from app.models.blockchain import Address, Coverage, Evidence, OwnerRole, TxHash
 
 Quantity = Annotated[str, Field(pattern=r"^(0|[1-9][0-9]*)$")]
 ExposureStatus = Literal["ACTIVE", "PARTIALLY_ACTIVE", "REVOKED", "SUPERSEDED", "UNKNOWN"]
@@ -19,6 +19,7 @@ class HistoricalPermission(FrozenModel):
     block_number: int
     timestamp: int
     evidence_ids: tuple[str, ...]
+    owner_role: OwnerRole | None = None
 
 
 class CurrentPermissionState(FrozenModel):

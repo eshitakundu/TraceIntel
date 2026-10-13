@@ -68,6 +68,9 @@ class Movement(FrozenModel):
     evidence_ids: tuple[str, ...]
 
 
+OwnerRole = Literal["sender", "called_contract", "other"]
+
+
 class Approval(FrozenModel):
     standard: Literal["ERC20", "ERC721", "operator"]
     token: str
@@ -76,6 +79,8 @@ class Approval(FrozenModel):
     amount_raw: str
     unlimited: bool
     evidence_ids: tuple[str, ...]
+    # None on reports created before ownership was classified.
+    owner_role: OwnerRole | None = None
 
 
 class Contract(FrozenModel):

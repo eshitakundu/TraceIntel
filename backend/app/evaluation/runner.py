@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -68,17 +69,24 @@ def run_cases() -> list[dict[str, object]]:
     decoded = decode_transaction(recorded)
     risk = evaluate(decoded, ())
     codes = sorted({signal.code for signal in risk.signals if signal.score})
+    roles = Counter(a.owner_role for a in decoded.approvals)
+    # Both unlimited approvals belong to contracts acting mid-transaction, not the sender;
+    # only the sender's finite WETH approvals may contribute to the sender's score.
     passed = (
         len(decoded.approvals) == 13
         and sum(a.unlimited for a in decoded.approvals) == 2
-        and risk.score == 40
-        and codes == ["TOKEN_APPROVAL", "UNLIMITED_TOKEN_APPROVAL"]
+        and not any(a.unlimited for a in decoded.approvals if a.owner_role == "sender")
+        and roles == Counter({"other": 9, "sender": 4})
+        and risk.score == 10
+        and codes == ["TOKEN_APPROVAL"]
+        and any(s.code == "APPROVAL_BY_OTHER_OWNER" for s in risk.signals)
     )
     results.append(
         {
             "case": "recorded Ethereum approval activity",
             "passed": passed,
             "approvals": len(decoded.approvals),
+            "owner_roles": dict(roles),
             "score": risk.score,
             "codes": codes,
         }
