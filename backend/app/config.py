@@ -15,7 +15,9 @@ class Settings(BaseSettings):
         default=SecretStr("sqlite+aiosqlite:///./traceintel.db"),
         validation_alias=AliasChoices("TRACEINTEL_DATABASE_URL", "DATABASE_URL"),
     )
-    ethereum_rpc_url: SecretStr = SecretStr("https://ethereum-rpc.publicnode.com")
+    # Drift detection compares the spender at the approval block with today, which needs
+    # archive state. dRPC's free Ethereum endpoint serves it; most public RPCs prune it.
+    ethereum_rpc_url: SecretStr = SecretStr("https://eth.drpc.org")
     monad_rpc_url: SecretStr = SecretStr("https://rpc.monad.xyz")
     openrouter_api_key: SecretStr = Field(
         default=SecretStr(""),
