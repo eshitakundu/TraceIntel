@@ -96,3 +96,31 @@ def test_spent_infinite_allowance_is_described_as_effectively_unlimited() -> Non
     text = permission_claims("p0", permission)[0].text
     assert "effectively unlimited" in text
     assert "reduced amount" not in text
+
+
+@pytest.mark.asyncio
+async def test_malformed_model_answer_is_retried_once_then_succeeds() -> None:
+    from app.agents.service import interpret
+    from app.config import Settings
+    from app.evaluation.scenarios import SCENARIOS, scripted
+    from nooa.unifiedllm.unifiedllm import LLMResponse
+
+    built = build(SCENARIOS[2].world)
+    valid = ReportDraft(
+        summary=["p0"],
+        actions=[ActionPick(permission_id="p0", action="consider_revoking", because=["p0"])],
+    )
+    llm = scripted(valid)
+    garbage = LLMResponse(
+        raw_response=None,
+        content="not json",
+        tool_calls=[],
+        finish_reason="stop",
+        assistant_message={"role": "assistant", "content": "not json"},
+    )
+    # NOOA retries a parse failure once itself; both attempts fail, then we repair.
+    llm._response_queue.extendleft([garbage, garbage])
+    async with built.client:
+        result = await interpret(built.catalog, built.ctx, Settings(), True, llm=llm)
+    assert result.author == "model", result.reason
+    assert any(t.status == "error" and "GenerationError" in t.detail for t in result.trace)

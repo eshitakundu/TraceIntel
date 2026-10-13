@@ -54,6 +54,10 @@ def describe_failure(exc: BaseException) -> str:
     return f"Model unavailable: {detail} ({name})."
 
 
+def is_format_failure(exc: BaseException) -> bool:
+    return isinstance(exc, ValidationError) or type(exc).__name__ == "GenerationError"
+
+
 def model_client(settings: Settings) -> Any:
     return get_llm_client(
         "openrouter/" + settings.openrouter_model,
@@ -146,7 +150,14 @@ async def interpret(
                             duration_ms=elapsed_ms(step_started),
                         )
                     )
-                    break
+                    # A malformed answer is repairable (routed providers vary per request);
+                    # credential, availability and timeout failures are not.
+                    if not is_format_failure(exc):
+                        break
+                    feedback = (
+                        "Your previous answer was not a valid JSON object for the required "
+                        "schema. Return only the JSON object."
+                    )
         elif not use_model:
             reason = "No model configured."
 
