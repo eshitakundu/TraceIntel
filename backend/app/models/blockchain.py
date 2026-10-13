@@ -80,12 +80,14 @@ class Approval(FrozenModel):
 
 class Contract(FrozenModel):
     address: Address
-    kind: Literal["contract", "no_code", "unknown"]
+    kind: Literal["contract", "no_code", "delegated_eoa", "unknown"]
     verification: Literal["verified", "unverified", "unavailable"] = "unavailable"
     name: str | None = None
     proxy: Literal["eip1967", "beacon", "not_detected", "unknown"] = "unknown"
     implementation: str | None = None
     abi_json: str | None = None
+    # "current" when the provider had pruned state at the transaction block.
+    state: Literal["historical", "current"] = "historical"
     evidence_ids: tuple[str, ...] = ()
 
 

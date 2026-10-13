@@ -61,3 +61,46 @@ def test_risk_deduplicates_and_preserves_unknowns() -> None:
     assert evaluate(decoded, (unknown,)).score == 30
     assert all(signal.score >= 0 for signal in result.signals)
     assert not any(s.code == "UNVERIFIED_TARGET" for s in evaluate(decoded, (unknown,)).signals)
+
+
+def _code_rpc(code_by_block: dict[str, str]) -> httpx.MockTransport:
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        if body["method"] == "eth_getCode":
+            code = code_by_block.get(body["params"][1])
+            if code is None:
+                error = {"code": -32000, "message": "missing trie node"}
+                return httpx.Response(200, json={"id": body["id"], "error": error})
+            return httpx.Response(200, json={"id": body["id"], "result": code})
+        return httpx.Response(200, json={"id": body["id"], "result": "0x" + "0" * 64})
+
+    return httpx.MockTransport(handler)
+
+
+async def _inspect(transport: httpx.MockTransport) -> tuple[Contract, tuple, tuple]:  # type: ignore[type-arg]
+    async with httpx.AsyncClient(transport=transport) as client:
+        return await inspect_contract(
+            RpcClient(client, "https://rpc.invalid"),
+            client,
+            chains(Settings())["ethereum"],
+            "0x" + "1" * 40,
+            "0x1",
+            "test",
+        )
+
+
+@pytest.mark.asyncio
+async def test_pruned_history_falls_back_to_labelled_current_state() -> None:
+    contract, evidence, coverage = await _inspect(_code_rpc({"latest": "0x6000"}))
+    assert contract.kind == "contract"
+    assert contract.state == "current"
+    assert "latest block" in evidence[0].description
+    assert any(c.status == "partial" and "pruned" in c.reason for c in coverage)
+
+
+@pytest.mark.asyncio
+async def test_eip7702_delegation_is_an_eoa_not_a_contract() -> None:
+    contract, _, _ = await _inspect(_code_rpc({"0x1": "0xef0100" + "a" * 40}))
+    assert contract.kind == "delegated_eoa"
+    assert contract.implementation == "0x" + "a" * 40
+    assert contract.state == "historical"

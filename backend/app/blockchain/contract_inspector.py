@@ -1,6 +1,7 @@
 import asyncio
 import json
-from typing import Any
+import weakref
+from typing import Any, Literal
 
 import httpx
 
@@ -13,6 +14,31 @@ from app.blockchain.proxy_detector import (
 )
 from app.blockchain.rpc_client import RpcClient, RpcError
 from app.models.blockchain import Contract, Coverage, Evidence
+
+# EIP-7702: an EOA's code is 0xef0100 followed by the 20-byte delegate address.
+DELEGATION_PREFIX = "0xef0100"
+# Etherscan's free tier allows a handful of calls per second; one gate per event loop.
+_explorer_gates: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore]" = (
+    weakref.WeakKeyDictionary()
+)
+
+
+def _explorer_slots() -> asyncio.Semaphore:
+    return _explorer_gates.setdefault(asyncio.get_running_loop(), asyncio.Semaphore(3))
+
+
+async def bytecode(rpc: RpcClient, address: str, block: str) -> str:
+    code = await rpc.call("eth_getCode", [address, block])
+    if not isinstance(code, str) or not code.startswith("0x"):
+        raise RpcError("Invalid bytecode response")
+    return code
+
+
+def delegate_of(code: str) -> str | None:
+    """Return the EIP-7702 delegate when code is a delegation designator."""
+    if code.startswith(DELEGATION_PREFIX) and len(code) == len(DELEGATION_PREFIX) + 40:
+        return "0x" + code[len(DELEGATION_PREFIX) :]
+    return None
 
 
 async def inspect_contract(
@@ -27,35 +53,69 @@ async def inspect_contract(
     evidence: list[Evidence] = []
     coverage: list[Coverage] = []
     eid = f"{prefix}:contract:{address}"
+    state: Literal["historical", "current"] = "historical"
     try:
-        code = await rpc.call("eth_getCode", [address, block])
-        if not isinstance(code, str) or not code.startswith("0x"):
-            raise RpcError("Invalid bytecode response")
+        code = await bytecode(rpc, address, block)
     except RpcError:
-        return (
-            Contract(address=address, kind="unknown"),
-            (),
-            (
-                Coverage(
-                    area=f"contract:{address}",
-                    status="unavailable",
-                    reason="Historical bytecode lookup failed.",
+        # Non-archive providers prune old state; labelled current state is the honest fallback.
+        try:
+            code = await bytecode(rpc, address, "latest")
+            block, state = "latest", "current"
+        except RpcError:
+            return (
+                Contract(address=address, kind="unknown"),
+                (),
+                (
+                    Coverage(
+                        area=f"contract:{address}",
+                        status="unavailable",
+                        reason="Bytecode lookup failed at the transaction block and latest block.",
+                    ),
                 ),
-            ),
+            )
+        coverage.append(
+            Coverage(
+                area=f"state:{address}",
+                status="partial",
+                reason="Provider pruned transaction-block state; current bytecode and slots used.",
+            )
         )
     evidence.append(
         Evidence(
             id=eid,
             source="eth_getCode",
-            description="Bytecode at transaction block",
+            description="Bytecode at transaction block"
+            if state == "historical"
+            else "Bytecode at latest block (transaction-block state unavailable)",
             data_json=json.dumps({"address": address, "block": block, "code": code}),
         )
     )
-    if code == "0x":
+    delegate = delegate_of(code)
+    if delegate:
         return (
-            Contract(address=address, kind="no_code", evidence_ids=(eid,)),
+            Contract(
+                address=address,
+                kind="delegated_eoa",
+                implementation=delegate,
+                state=state,
+                evidence_ids=(eid,),
+            ),
             tuple(evidence),
             (
+                *coverage,
+                Coverage(
+                    area=f"contract:{address}",
+                    status="available",
+                    reason="EIP-7702 delegation: an externally owned account using delegate code.",
+                ),
+            ),
+        )
+    if code == "0x":
+        return (
+            Contract(address=address, kind="no_code", state=state, evidence_ids=(eid,)),
+            tuple(evidence),
+            (
+                *coverage,
                 Coverage(
                     area=f"contract:{address}",
                     status="available",
@@ -79,7 +139,9 @@ async def inspect_contract(
             Evidence(
                 id=eid + ":proxy",
                 source="eth_getStorageAt / eth_call",
-                description="EIP-1967 slots at transaction block end",
+                description="EIP-1967 slots at transaction block end"
+                if state == "historical"
+                else "EIP-1967 slots at latest block",
                 data_json=json.dumps(
                     {
                         "implementation_slot": impl_word,
@@ -102,23 +164,24 @@ async def inspect_contract(
             Coverage(
                 area=f"proxy:{address}",
                 status="unavailable",
-                reason="Historical proxy lookup unavailable.",
+                reason="Proxy slot lookup unavailable.",
             )
         )
     verification: Any = "unavailable"
     name = abi_json = None
     if explorer_key:
         try:
-            response = await client.get(
-                "https://api.etherscan.io/v2/api",
-                params={
-                    "chainid": chain.chain_id,
-                    "module": "contract",
-                    "action": "getsourcecode",
-                    "address": address,
-                    "apikey": explorer_key,
-                },
-            )
+            async with _explorer_slots():
+                response = await client.get(
+                    "https://api.etherscan.io/v2/api",
+                    params={
+                        "chainid": chain.chain_id,
+                        "module": "contract",
+                        "action": "getsourcecode",
+                        "address": address,
+                        "apikey": explorer_key,
+                    },
+                )
             response.raise_for_status()
             payload = response.json()
             if payload.get("status") == "1" and isinstance(payload.get("result"), list):
@@ -142,7 +205,7 @@ async def inspect_contract(
                         ),
                     )
                 )
-        except (httpx.HTTPError, ValueError, KeyError, IndexError):
+        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, AttributeError):
             verification = "unavailable"
     coverage.append(
         Coverage(
@@ -162,6 +225,7 @@ async def inspect_contract(
             verification=verification,
             name=name,
             abi_json=abi_json,
+            state=state,
             evidence_ids=tuple(item.id for item in evidence),
         ),
         tuple(evidence),
