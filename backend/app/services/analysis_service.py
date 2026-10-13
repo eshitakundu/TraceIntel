@@ -10,6 +10,7 @@ import httpx
 
 from app.agents.catalog import build_catalog
 from app.agents.service import interpret
+from app.agents.tools import ToolContext
 from app.blockchain.calldata import decode_calldata
 from app.blockchain.chains import chains
 from app.blockchain.contract_inspector import inspect_contract
@@ -21,7 +22,6 @@ from app.blockchain.traces import fetch_traces
 from app.blockchain.transaction_fetcher import TransactionUnavailable, fetch_transaction
 from app.config import Settings
 from app.models.blockchain import Coverage
-from app.models.interpretation import Interpretation
 from app.models.report import AnalysisJob, AnalysisRequest, Report
 from app.risk.engine import evaluate
 from app.services.repository import ReportRepository
@@ -116,7 +116,7 @@ class AnalysisService:
         started = time.monotonic()
         async with self.semaphore:
             try:
-                async with asyncio.timeout(180):
+                async with asyncio.timeout(240):
                     await self._analyze(job)
                 logger.info("job=%s complete ms=%d", job.id, (time.monotonic() - started) * 1000)
             except LeaseLost:
@@ -219,19 +219,33 @@ class AnalysisService:
         job = await self.stage(job, "Checking current approval exposure")
         exposure = await analyze_exposure(decoded, rpc, f"{job.chain}:{job.transaction_hash}")
         coverage += (exposure.coverage,)
-        job = await self.stage(job, "Running NOOA intelligence analysis")
+        job = await self.stage(job, "Investigating live permissions")
         catalog = build_catalog(decoded, risk, contracts, coverage, exposure)
-        interpretation = Interpretation(status="unavailable", reason="Model/key is not configured.")
+        snapshot = next(
+            (p.current.block_hash for p in exposure.permissions if p.current.block_hash), None
+        )
+        ctx = ToolContext(
+            rpc=rpc,
+            chain_id=chain.chain_id,
+            chain_name=chain.name,
+            prefix=f"{job.chain}:{job.transaction_hash}",
+            targets=catalog.targets,
+            contracts={c.address: c for c in contracts},
+            evidence={e.id: e for e in decoded.evidence},
+            # Follow-up reads observe the same block as the exposure snapshot.
+            tag={"blockHash": snapshot, "requireCanonical": True} if snapshot else "latest",
+        )
+        use_model = False
         if self.settings.openrouter_api_key.get_secret_value() and self.settings.openrouter_model:
             day = datetime.now(UTC).strftime("%Y-%m-%d")
-            if await self.repository.reserve_budget(f"llm:{day}", self.settings.daily_llm_analyses):
-                interpretation = await interpret(
-                    catalog, self.settings, any(c.kind == "contract" for c in contracts)
-                )
-            else:
-                interpretation = Interpretation(
-                    status="unavailable", reason="Daily interpretation budget reached."
-                )
+            use_model = await self.repository.reserve_budget(
+                f"llm:{day}", self.settings.daily_llm_analyses
+            )
+        interpretation = await interpret(catalog, ctx, self.settings, use_model)
+        if not use_model and self.settings.openrouter_api_key.get_secret_value():
+            interpretation = interpretation.model_copy(
+                update={"reason": "Daily model budget reached. Showing rule-based advice."}
+            )
         job = await self.stage(job, "Generating report")
         report = Report(
             id=job.id,

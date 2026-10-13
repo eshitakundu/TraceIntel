@@ -41,5 +41,6 @@ strict = true
 packages = ["app"]
 
 [[tool.mypy.overrides]]
-module = ["app.agents.transaction_analyst", "app.agents.contract_analyst", "app.agents.report_synthesizer"]
+# NOOA strategies implement these methods; their bodies are intentionally empty.
+module = ["app.agents.planner", "app.agents.reporter"]
 disable_error_code = ["empty-body"]

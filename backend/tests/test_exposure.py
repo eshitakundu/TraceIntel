@@ -130,5 +130,9 @@ async def test_current_state_reads_are_pinned_and_failures_are_explicit(
     if failure in ("block", "reorg", "timeout"):
         assert not result.evidence
     catalog = build_catalog(decoded, risk, (), (), result)
-    assert any(c.id.startswith("exposure:") for c in catalog)
-    assert all(set(c.evidence_ids) <= ids for c in catalog)
+    assert catalog.targets and all(pid in catalog.by_id() for pid in catalog.targets)
+    assert all(set(c.evidence_ids) <= ids for c in catalog.claims)
+    # Distinct permissions only: 13 events collapse to their token/owner/spender keys.
+    assert len(catalog.targets) == len(
+        {(p.historical.token, p.historical.owner, p.historical.spender) for p in result.permissions}
+    )

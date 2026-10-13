@@ -1,15 +1,15 @@
+import asyncio
 import json
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.agents.validation import validate_selection
 from app.blockchain.decoder import decode_transaction
 from app.blockchain.event_decoder import APPROVAL
 from app.blockchain.exposure_analyzer import compare_permission
+from app.evaluation.scenarios import run_agent_cases
 from app.models.blockchain import RawTransaction
 from app.models.exposure import CurrentPermissionState, HistoricalPermission
-from app.models.interpretation import AgentSelection, CitedClaim
 from app.risk.engine import evaluate
 
 
@@ -91,34 +91,6 @@ def run_cases() -> list[dict[str, object]]:
             "codes": codes,
         }
     )
-    claim = CitedClaim(id="known", text="Transaction success.", evidence_ids=("receipt:1",))
-    valid = AgentSelection(
-        summary=(claim,),
-        important_findings=(),
-        uncertainties=(),
-        recommended_checks=(),
-        confidence=0.5,
-    )
-    accepted = validate_selection(valid, (claim,)) == valid
-    rejected = 0
-    for field, value in (
-        ("text", "Transaction is safe."),
-        ("id", "invented"),
-        ("evidence_ids", ("invented",)),
-    ):
-        altered = valid.model_copy(update={"summary": (claim.model_copy(update={field: value}),)})
-        try:
-            validate_selection(altered, (claim,))
-        except ValueError:
-            rejected += 1
-    results.append(
-        {
-            "case": "agent grounding adversarial cases",
-            "passed": accepted and rejected == 3,
-            "valid_claim_accepted": accepted,
-            "unsupported_outputs_rejected": rejected,
-        }
-    )
     transitions = json.loads(Path("evals/cases/exposure-transitions.json").read_text())["cases"]
     for case in transitions:
         h = HistoricalPermission(
@@ -149,13 +121,16 @@ def run_cases() -> list[dict[str, object]]:
                 "permission_active": item.permission_active,
             }
         )
+    results += asyncio.run(run_agent_cases())
     return results
 
 
 def main() -> None:
     results = run_cases()
     print(json.dumps(results, indent=2))
-    if not all(result["passed"] for result in results):
+    passed = sum(bool(result["passed"]) for result in results)
+    print(f"{passed}/{len(results)} evaluation cases passed")
+    if passed != len(results):
         raise SystemExit(1)
 
 

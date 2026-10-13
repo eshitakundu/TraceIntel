@@ -52,7 +52,14 @@ def test_validation_and_report_lifecycle() -> None:
         assert job["status"] == "complete", job
         report = client.get(f"/api/v1/reports/{job['report_id']}").json()
         assert report["transaction_hash"] == raw.tx_hash
-        assert report["interpretation"]["status"] == "unavailable"
+        # Without a model, the rule-based baseline still briefs the owner, and says so.
+        interpretation = report["interpretation"]
+        assert interpretation["status"] == "available"
+        assert interpretation["author"] == "baseline"
+        assert interpretation["model"] is None
+        assert interpretation["reason"].startswith("No model configured")
+        assert interpretation["llm_calls"] == 0
+        assert interpretation["result"]["summary"]
         evidence_ids = {e["id"] for e in report["decoded"]["evidence"]}
         assert all(
             set(signal["evidence_ids"]) <= evidence_ids for signal in report["risk"]["signals"]

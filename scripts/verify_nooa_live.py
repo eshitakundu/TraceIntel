@@ -1,73 +1,90 @@
-"""Opt-in live NOOA evaluation: at most three calls, no provider error/key output."""
+"""Opt-in live agent evaluation against a real model (charges apply).
+
+Runs every labelled scenario with the configured OpenRouter model as planner and
+reporter. The on-chain world is scripted, so only the model varies between runs.
+Reports advice accuracy against the labels next to the rule-based baseline, plus
+grounding, repairs, model calls and latency. Results are written to evals/results/.
+
+    OPENROUTER_API_KEY=... OPENROUTER_MODEL=... \\
+        PYTHONPATH=backend uv run python scripts/verify_nooa_live.py
+"""
 
 import asyncio
-import hashlib
 import json
+import time
+from datetime import UTC, datetime
 from pathlib import Path
 
-from app.agents.catalog import build_catalog
-from app.agents.contract_analyst import ContractAnalyst
-from app.agents.report_synthesizer import ReportSynthesizer
-from app.agents.transaction_analyst import TransactionAnalyst
-from app.agents.validation import validate_selection
-from app.blockchain.decoder import decode_transaction
+from app.agents.service import interpret, model_client
 from app.config import Settings
-from app.models.blockchain import RawTransaction
-from app.risk.engine import evaluate
-from nooa.unifiedllm.registry import get_llm_client
-from nooa.unifiedllm.retry_config import RetryConfig
+from app.evaluation.scenarios import SCENARIOS, Scenario, build, grounded
 
 
-async def main() -> None:
-    settings = Settings()
-    if not settings.openrouter_api_key.get_secret_value():
-        raise SystemExit("OpenRouter key is not configured.")
-    raw = RawTransaction.model_validate_json(
-        await asyncio.to_thread(Path("evals/cases/ethereum-recorded.json").read_text)
-    )
-    decoded = decode_transaction(raw)
-    before = hashlib.sha256(decoded.model_dump_json().encode()).hexdigest()
-    risk = evaluate(decoded, ())
-    catalog = build_catalog(decoded, risk, (), decoded.coverage)
-    llm = get_llm_client(
-        "openrouter/" + settings.openrouter_model,
-        api_key=settings.openrouter_api_key.get_secret_value(),
-        timeout=30,
-        num_retries=0,
-        retry_config=RetryConfig(max_retries=0, rate_limit_extra_retries=0),
-    )
+async def run(scenario: Scenario, settings: Settings, use_model: bool) -> dict[str, object]:
+    built = build(scenario.world)
+    llm = model_client(settings) if use_model else None
+    started = time.monotonic()
     try:
-        async with asyncio.timeout(100):
-            transaction = validate_selection(
-                await TransactionAnalyst(llm=llm).explain(catalog), catalog
+        async with built.client:
+            result = await interpret(
+                built.catalog,
+                built.ctx,
+                settings,
+                use_model,
+                llm=llm,
+                always_plan_with_model=use_model,
             )
-            contract = validate_selection(await ContractAnalyst(llm=llm).explain(catalog), catalog)
-            final = validate_selection(
-                await ReportSynthesizer(llm=llm).synthesize(catalog, transaction, contract), catalog
-            )
-    except Exception as exc:
-        detail = str(exc).replace(settings.openrouter_api_key.get_secret_value(), "[REDACTED]")
-        print(
-            json.dumps(
-                {"status": "failed", "error_type": type(exc).__name__, "detail": detail[:800]}
-            )
-        )
-        raise SystemExit(1) from None
     finally:
-        await llm.aclose()
-    assert before == hashlib.sha256(decoded.model_dump_json().encode()).hexdigest()
-    print(
-        json.dumps(
-            {
-                "status": "passed",
-                "model": settings.openrouter_model,
-                "claims": len(final.summary) + len(final.important_findings),
-                "evidence_unchanged": True,
-                "citations_valid": True,
-            }
-        )
-    )
+        if llm is not None:
+            await llm.aclose()
+    selection = result.result
+    actions = {a.permission_id: a.action for a in selection.actions} if selection else {}
+    return {
+        "scenario": scenario.name,
+        "author": result.author,
+        "advice_matches_label": actions == scenario.actions,
+        "grounded": grounded(result, built),
+        "repairs": sum(1 for t in result.trace if t.actor == "validator" and t.name == "briefing"),
+        "planner_rejections": sum(
+            1 for t in result.trace if t.actor == "validator" and t.name != "briefing"
+        ),
+        "llm_calls": result.llm_calls,
+        "seconds": round(time.monotonic() - started, 1),
+        "reason": result.reason,
+    }
+
+
+def summarise(rows: list[dict[str, object]]) -> dict[str, object]:
+    count = len(rows)
+    return {
+        "advice_accuracy": sum(bool(r["advice_matches_label"]) for r in rows) / count,
+        "grounded_rate": sum(bool(r["grounded"]) for r in rows) / count,
+        "model_authored_rate": sum(r["author"] == "model" for r in rows) / count,
+        "repairs": sum(int(r["repairs"]) for r in rows),  # type: ignore[call-overload]
+        "llm_calls": sum(int(r["llm_calls"]) for r in rows),  # type: ignore[call-overload]
+        "median_seconds": sorted(float(r["seconds"]) for r in rows)[count // 2],  # type: ignore[arg-type]
+    }
+
+
+async def evaluate() -> dict[str, object]:
+    settings = Settings()
+    if not settings.openrouter_api_key.get_secret_value() or not settings.openrouter_model:
+        raise SystemExit("Set OPENROUTER_API_KEY and OPENROUTER_MODEL to run the live evaluation.")
+    baseline = [await run(s, settings, use_model=False) for s in SCENARIOS]
+    model = [await run(s, settings, use_model=True) for s in SCENARIOS]
+    return {
+        "model": settings.openrouter_model,
+        "ran_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "baseline": summarise(baseline),
+        "model_summary": summarise(model),
+        "cases": model,
+    }
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    report = asyncio.run(evaluate())
+    out = Path("evals/results")
+    out.mkdir(parents=True, exist_ok=True)
+    name = str(report["model"]).replace("/", "_")
+    (out / f"live-{name}.json").write_text(json.dumps(report, indent=2) + "\n")
+    print(json.dumps({k: v for k, v in report.items() if k != "cases"}, indent=2))
