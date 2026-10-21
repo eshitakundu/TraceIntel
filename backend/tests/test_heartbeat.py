@@ -25,6 +25,9 @@ class FlakyRepository:
 class Analysis:
     closed = 0
 
+    def __init__(self) -> None:
+        self.tasks: set[object] = {object()}
+
     async def close(self) -> None:
         self.closed += 1
 
@@ -54,3 +57,37 @@ async def test_sustained_failure_stops_local_work_then_recovers() -> None:
     state = await run_heartbeat(failures=MAX_MISSED_HEARTBEATS, beats=MAX_MISSED_HEARTBEATS + 2)
     assert state.analysis.closed == 1
     assert state.lease_healthy is True
+
+
+@pytest.mark.asyncio
+async def test_idle_worker_does_not_query_database_but_resumes_for_work() -> None:
+    analysis = Analysis()
+    analysis.tasks.clear()
+    state = SimpleNamespace(lease_healthy=True, analysis=analysis)
+    repository = FlakyRepository(failures=0, beats=1)
+    task = asyncio.create_task(lease_heartbeat(state, repository, interval=0.001))
+    try:
+        await asyncio.sleep(0.03)
+        assert repository.calls == 0
+        analysis.tasks.add(object())
+        await asyncio.wait_for(repository.done.wait(), timeout=5)
+        assert repository.calls >= 1
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+
+
+@pytest.mark.asyncio
+async def test_unhealthy_idle_worker_still_retries_database() -> None:
+    analysis = Analysis()
+    analysis.tasks.clear()
+    state = SimpleNamespace(lease_healthy=False, analysis=analysis)
+    repository = FlakyRepository(failures=0, beats=1)
+    task = asyncio.create_task(lease_heartbeat(state, repository, interval=0.001))
+    try:
+        await asyncio.wait_for(repository.done.wait(), timeout=5)
+        await asyncio.sleep(0)
+        assert state.lease_healthy is True
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)

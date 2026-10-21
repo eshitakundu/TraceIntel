@@ -52,7 +52,8 @@ async def test_repository_deduplicates_and_recovers(tmp_path) -> None:
         )
     with pytest.raises(RuntimeError, match="expired"):
         await repo.renew_leases()
-    await replacement.recover_interrupted()
+    recovered_by_poll = await replacement.get_job(job.id)
+    assert recovered_by_poll and recovered_by_poll.status == "failed"
     # A delayed old worker must not resurrect a recovered terminal job, and learns it lost it.
     assert not await repo.update_job(
         job.model_copy(update={"status": "complete", "stage": "Complete"})

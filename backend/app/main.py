@@ -7,12 +7,12 @@ from typing import Any
 import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.api.protection import RequestProtection
 from app.api.routes import analysis, health
 from app.config import Settings
 from app.services.analysis_service import AnalysisService
+from app.storage.database import database_engine
 from app.storage.sql_repository import SqlReportRepository
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,10 @@ async def lease_heartbeat(
     missed = 0
     while True:
         await asyncio.sleep(interval)
+        # No local work needs lease renewal while idle. Keep retrying after a
+        # failure so readiness can heal even after local tasks were cancelled.
+        if state.lease_healthy and not state.analysis.tasks:
+            continue
         try:
             async with asyncio.timeout(10):
                 await repository.renew_leases()
@@ -57,7 +61,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        engine = create_async_engine(settings.database_url.get_secret_value(), pool_pre_ping=True)
+        engine = database_engine(settings.database_url.get_secret_value())
         repository = SqlReportRepository(engine)
         try:
             await repository.recover_interrupted()

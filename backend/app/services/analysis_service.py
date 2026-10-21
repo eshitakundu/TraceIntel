@@ -74,6 +74,9 @@ class AnalysisService:
             status="queued",
             stage="Queued",
         )
+        # Idle workers don't poll the database. Recover expired jobs on demand
+        # before looking up the cache, so an old queued job cannot block retries.
+        await self.repository.recover_interrupted()
         job, created = await self.repository.submit(job, key)
         if not created and job.status == "complete" and job.report_id:
             cached = await self.repository.get_report(job.report_id)

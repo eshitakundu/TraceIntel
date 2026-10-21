@@ -40,6 +40,9 @@ class SqlReportRepository:
                 return AnalysisJob.model_validate_json(existing.payload), False
 
     async def get_job(self, job_id: str) -> AnalysisJob | None:
+        # Polling must resolve work abandoned by a previous process even when
+        # this worker has no active jobs (and therefore no idle heartbeat).
+        await self.recover_interrupted()
         async with self.sessions() as session:
             row = await session.get(JobRow, job_id)
             return AnalysisJob.model_validate_json(row.payload) if row else None

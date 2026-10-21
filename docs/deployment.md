@@ -1,6 +1,6 @@
 # Deployment
 
-The public app is [traceintel.eshita.dev](https://traceintel.eshita.dev). Cloudflare serves React static assets and proxies `/api/*` to [the Render API](https://traceintel-api.onrender.com), which persists jobs and reports in Render PostgreSQL and queries Ethereum/Monad RPC providers. NOOA uses OpenRouter downstream of evidence.
+The public app is [traceintel.eshita.dev](https://traceintel.eshita.dev). Cloudflare serves React static assets and proxies `/api/*` to [the Render API](https://traceintel-api.onrender.com), which persists jobs and reports in PostgreSQL and queries Ethereum/Monad RPC providers. NOOA uses OpenRouter downstream of evidence. The configuration below supports Neon Free as the replacement for the expired Render trial database; pushing code alone does not provision or switch the live database.
 
 ## Render: current manual configuration
 
@@ -13,10 +13,10 @@ The service is configured manually. There is no Blueprint to apply; the obsolete
 | Dockerfile | `./Dockerfile` |
 | Build context | `.` |
 | Docker Command | **Blank** — use the image CMD |
-| Health check | `/api/v1/ready` |
+| Health check | `/api/v1/health` (liveness; does not wake the database) |
 | Region | Singapore |
 | Compute | Free web service, one instance |
-| Database | Render PostgreSQL |
+| Database | Neon Free PostgreSQL, configured separately below |
 | Migrations | Container startup; no pre-deploy command |
 
 Do not set Docker Command to `./Dockerfile`: it overrides the image command. `backend/start.sh` validates Render's `PORT`, runs `alembic upgrade head`, then uses `exec uvicorn` with one worker and a 20-second graceful shutdown timeout. Leave `TRACEINTEL_SKIP_MIGRATIONS` unset or false. That escape hatch is only for environments that already run migrations separately.
@@ -27,7 +27,7 @@ Free compute sleeps after inactivity. The frontend checks `/api/v1/ready`, displ
 
 | Variable | Configuration |
 | --- | --- |
-| `DATABASE_URL` | Existing Render PostgreSQL internal connection URL (secret) |
+| `DATABASE_URL` | Neon direct connection URL (secret); see setup below |
 | `TRACEINTEL_ENVIRONMENT` | `production` |
 | `TRACEINTEL_PROXY_TOKEN` | Existing shared origin secret; must match the Worker |
 | `OPENROUTER_API_KEY` | Backend-only secret |
@@ -40,7 +40,19 @@ Free compute sleeps after inactivity. The frontend checks `/api/v1/ready`, displ
 
 Drift detection ("changed since the approval") reads state at the approval block, so use archive-capable RPCs. The default Ethereum RPC (`https://eth.drpc.org`) serves archive state; pruned providers keep working, but those checks are reported as unverifiable.
 
-The backend normalizes Render's PostgreSQL URL to asyncpg. `TRACEINTEL_DATABASE_URL` takes precedence over `DATABASE_URL`; configure only one. Optional `TRACEINTEL_ETHEREUM_RPC_URL`, `TRACEINTEL_MONAD_RPC_URL` and `TRACEINTEL_EXPLORER_API_KEY` select providers. Keep tracing disabled unless the provider supports it. Local `.env` is ignored and is not deployed.
+The backend normalizes PostgreSQL URLs to asyncpg. For Neon hosts, both the API and migrations translate the console URL's libpq-only `sslmode` and `channel_binding` parameters into an asyncpg TLS context with certificate and hostname verification. Credentials stay in the environment. `TRACEINTEL_DATABASE_URL` takes precedence over `DATABASE_URL`; configure only one. Optional `TRACEINTEL_ETHEREUM_RPC_URL`, `TRACEINTEL_MONAD_RPC_URL` and `TRACEINTEL_EXPLORER_API_KEY` select providers. Keep tracing disabled unless the provider supports it. Local `.env` is ignored and is not deployed.
+
+### Switch to a fresh Neon Free database
+
+1. Create a Neon project on the **Free** plan, preferably near the Render API in Singapore. No paid plan or payment method is needed. Previous reports are intentionally not migrated.
+2. In Neon's Connect dialog, turn connection pooling **off** and copy the direct PostgreSQL URL. Use this for the single API process and startup migrations. Keep the URL secret; do not commit it or put it in frontend configuration.
+3. In Render's API environment, replace `DATABASE_URL` with that URL. Remove an old `TRACEINTEL_DATABASE_URL` override if present. Preserve other secrets.
+4. Change Render's service health-check path to `/api/v1/health`. The Docker health check also uses liveness. Frequent database readiness probes or external uptime monitors would prevent scale-to-zero, so do not point them at `/api/v1/ready`.
+5. Deploy the updated code. Startup runs the existing Alembic migrations to create the fresh schema. Check readiness and run an analysis, then reload/download its report.
+
+Neon Free suspends database compute after inactivity. Healthy idle API workers do not query it in the background; active jobs still renew leases every 15 seconds. Expired jobs are recovered at startup, on submissions and during job polling. Readiness remains a real database check with a six-second timeout to accommodate database wake-up. Only use it when preparing to serve work or checking the deployment manually.
+
+The free allowance is finite: review compute, storage and traffic usage in Neon. Keep the plan Free to avoid charges. Database suspension due to exhausted allowances can still make analysis unavailable until the allowance resets or capacity is freed. See [Neon pricing](https://neon.com/pricing) for current limits.
 
 ## Cloudflare Worker
 
@@ -70,7 +82,7 @@ Then exercise both recorded network examples, progress, report reload and JSON d
 
 Render's logs show one line per job stage with the job ID, completion time, lease heartbeat health and, for unexpected failures, the exception type and code location. Exception messages are deliberately never logged. Readiness tests the database and job coordination, not RPC provider health. Worker 503 indicates missing configuration; 502 indicates an unreachable/timed-out origin. Origin readiness 503 indicates unavailable persistence or coordination.
 
-Keep one configured API instance/worker. Process-owned leases protect temporary deployment overlap: heartbeat every 15 seconds, expiry after 60 seconds. Shutdown interrupts only owned jobs; recovery marks expired/unowned jobs retryable. Lost leases cannot revive terminal jobs. Heartbeat failure stops local work and fails readiness/submissions closed. Free-service sleep can interrupt in-process analysis; persisted reports survive in PostgreSQL.
+Keep one configured API instance/worker. Process-owned leases protect temporary deployment overlap: heartbeat every 15 seconds while work is active, expiry after 60 seconds. Shutdown interrupts only owned jobs; recovery marks expired/unowned jobs retryable. Lost leases cannot revive terminal jobs. Heartbeat failure stops local work and fails readiness/submissions closed, continuing recovery checks until healthy. Free-service sleep can interrupt in-process analysis; persisted reports survive in PostgreSQL.
 
 Back up PostgreSQL before migrations. Initial adoption of lease migration 0002 from an older unleased deployment requires draining old work. Set provider spending limits independently of application job limits.
 

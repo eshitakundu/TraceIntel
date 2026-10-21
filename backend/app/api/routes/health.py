@@ -20,7 +20,7 @@ async def ready(request: Request) -> HealthResponse:
     if not request.app.state.lease_healthy:
         raise HTTPException(503, "Job coordination is unavailable.")
     try:
-        async with asyncio.timeout(2):
+        async with asyncio.timeout(6):
             async with request.app.state.database.connect() as connection:
                 await connection.execute(text("SELECT 1"))
     except Exception:
