@@ -1,5 +1,7 @@
 FROM ghcr.io/astral-sh/uv:0.11.15 AS uv
 FROM python:3.12-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && update-ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=uv /uv /uvx /bin/
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UV_COMPILE_BYTECODE=1
 WORKDIR /app
