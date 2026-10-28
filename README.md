@@ -1,104 +1,141 @@
 # TraceIntel
 
-**Can a contract you approved still take your tokens, has it changed since you said yes, and should you revoke it?**
+**An evidence-grounded security agent for token approvals.** TraceIntel reconstructs what an EVM transaction approved, checks what that permission can do now, and recommends whether to revoke, verify, or review it.
 
-[Live app](https://traceintel.eshita.dev) · [Recorded walkthrough](https://drive.google.com/file/d/1-5eEX6gudDaP5FLFxx9WotcHQ9CJlThD/view) · [How the agent works](docs/agents.md) · [Evaluations](evals/README.md) · [Architecture](docs/architecture.md)
+[Live app](https://traceintel.eshita.dev) · [1:44 walkthrough](https://drive.google.com/file/d/1-5eEX6gudDaP5FLFxx9WotcHQ9CJlThD/view) · [Agent design](docs/agents.md) · [Evaluations](evals/README.md) · [Architecture](docs/architecture.md)
 
-![A TraceIntel report: the agent's briefing and recommended action, then the historical approval beside today's allowance](docs/screenshots/exposure-dashboard.png)
+![TraceIntel report showing the agent briefing, recommended action, historical approval, and current allowance](docs/screenshots/exposure-dashboard.png)
 
-## Why it exists
+## The problem
 
-Token approvals outlive the swaps that create them. An unlimited approval granted once stays live until it is revoked, so a wallet can be drained months later, without signing anything new, when the approved contract is upgraded, compromised or simply trusted with more than it needs. Block explorers show what a transaction did. They do not tell you what it still allows, or whether the contract you trusted then is the contract running now.
+Token approvals can outlive the swap that created them. An unlimited permission may remain active for months, while the approved spender can be upgraded, compromised, or placed under different control.
 
-## What it does
+Block explorers show what a transaction did. TraceIntel answers the harder question: **what can this approval still do, what changed since it was granted, and should I revoke it?**
 
-Paste an Ethereum or Monad transaction hash. TraceIntel:
+## What the report gives you
 
-1. **Decodes** every approval the transaction emitted, and separates the sender's own from approvals that contracts granted each other mid-transaction.
-2. **Checks today** each permission's allowance, the owner's balance and the spender's code, at one pinned and revalidated block (*then → now*).
-3. **Investigates** the live permissions with an agent: who the spender is, whether it was upgraded or its code changed since the approval, and whether a single key controls its upgrades.
-4. **Advises** per permission (*consider revoking*, *verify the spender* or *check who can upgrade it*), with every sentence linked to the on-chain evidence behind it.
+Paste an Ethereum or Monad transaction hash. For every approval controlled by the sender, TraceIntel returns:
 
-It is read-only and needs no wallet connection.
+- the original approval and the permission that remains live;
+- the spender's current code, proxy, and upgrade-control evidence;
+- a recommendation: **revoke**, **verify**, or **review**;
+- citations back to the exact on-chain facts behind every claim; and
+- a complete trace of the agent's plan, tool calls, rejections, and repairs.
 
-## How the AI works, and why it cannot make things up
+The product is read-only and never asks for a wallet connection.
+
+## See it working
+
+| Path | What it shows |
+| --- | --- |
+| [Open the live app](https://traceintel.eshita.dev) | Run a transaction when the API is awake. The free backend can take up to two minutes to start. |
+| [Watch the recorded walkthrough](https://drive.google.com/file/d/1-5eEX6gudDaP5FLFxx9WotcHQ9CJlThD/view) | A complete 1:44 product walkthrough. |
+| Use a recorded example on the homepage | Replay a full analysis and inspect its report even when the backend is offline. |
+
+## How it works
+
+1. **Decode the transaction.** Parse every ERC-20 and ERC-721 approval and separate the sender's permissions from approvals created by contracts inside the same transaction.
+2. **Reconstruct then and now.** Read the historical approval and current allowance, balance, bytecode, and proxy state at pinned, revalidated blocks.
+3. **Investigate live risk.** A bounded agent profiles the spender, checks upgrades and upgrade authority, and compares current state with the original permission.
+4. **Return a defensible action.** A grounding validator accepts only claims supported by collected evidence. Invalid output gets one repair attempt, then falls back to deterministic advice.
 
 ```mermaid
 flowchart LR
-  E[On-chain evidence] --> C[(Claim catalog<br/>sentences written by code)]
-  C --> P{{Planner<br/>model or baseline}}
-  P -->|typed tool calls| G[Guard: scope · budget]
-  G --> T[Read-only tools]
-  T -->|new cited claims| C
-  C --> R{{Reporter<br/>model or baseline}}
-  R -->|claim IDs + actions| V[Grounding validator]
-  V -->|feedback, one repair| R
-  V --> B[Briefing + full trace]
+  TX[Transaction hash] --> D[Decode approvals]
+  D --> S[Historical + live state]
+  S --> A[Bounded agent investigation]
+  A --> V[Grounding validator]
+  V --> R[Evidence-cited report]
+  V -->|invalid output| F[Repair once or use baseline]
+  F --> R
 ```
 
-- **Models choose, code writes.** The model selects claim IDs and actions; code turns evidence into every sentence. A report cannot contain a fact, number or address that did not come from the chain.
-- **A typed, bounded action space.** The planner can only request `spender_profile`, `upgrade_control` or `known_spender` on permission IDs that already exist in the evidence, and only for permissions the sender controls. Budgets are enforced in code.
-- **Validate, then repair once.** Unknown IDs, or actions without a supporting claim, are rejected with precise feedback, and the reporter gets one attempt to fix them.
-- **A deterministic baseline that is also the benchmark.** The same investigation and advice run without a model, and run instead when the model fails. Evaluations compare the two on labelled scenarios.
-- **Hardened inputs.** Attacker-chosen token symbols and contract names never reach model input, and provider errors never reach reports or logs.
-- **Auditable.** Every plan, tool call, rejection, repair and timing is stored with the report and shown as "How the agent worked".
+## Why the model cannot invent the report
 
-Built on [NOOA](docs/nooa.md) (NVIDIA's agent framework) with OpenRouter models. Full design, trade-offs and rejected alternatives: [docs/agents.md](docs/agents.md).
+| Guardrail | Implementation |
+| --- | --- |
+| Code owns the facts | Python converts chain evidence into a claim catalog. The model selects claim IDs; it does not write new facts, numbers, or addresses. |
+| Tools are typed and bounded | The planner can call only `spender_profile`, `upgrade_control`, or `known_spender`, only for known permission IDs, under a hard call budget. |
+| Every sentence is validated | Unknown claims, unsupported actions, and out-of-scope permissions are rejected before the report is stored. |
+| Failure is safe | The reporter gets one repair attempt. If the model or provider fails, the deterministic baseline still returns grounded advice. |
+| Inputs are hardened | Attacker-controlled token symbols and contract names never enter the model prompt. Provider errors never enter reports or logs. |
+
+The agent runs on [NOOA](docs/nooa.md), NVIDIA's agent framework, with OpenRouter models. The full reasoning design and rejected alternatives are documented in [docs/agents.md](docs/agents.md).
 
 ## Evidence that it works
 
-`make evaluate` runs **24 offline cases in CI**: historical rules, approval ownership on a real transaction, six exposure transitions, **eight labelled agent scenarios** (upgraded spender, key-held spender, single-key upgrades, recognised router, raised-to-unlimited, revoked, pruned history…) and **five adversarial guardrail cases** in which the model itself is scripted to misbehave. `scripts/verify_nooa_live.py` scores a real model against the rule-based baseline on the same scenarios. [Details](evals/README.md).
+The current CI suite proves the claims made above rather than only testing happy paths:
 
-## Engineering highlights
+- **24/24 offline evaluation cases**, including historical rules, approval ownership, six exposure transitions, eight labelled agent scenarios, and five adversarial guardrail cases;
+- **101 automated tests**: 66 backend tests, 20 frontend unit tests, and 15 Playwright browser tests;
+- backend tests run against both **SQLite and PostgreSQL**;
+- strict mypy, Ruff, ESLint, TypeScript, and production builds;
+- a Docker build plus an assigned-port readiness smoke test; and
+- a Cloudflare Worker deployment dry run.
 
-- **Correct under real chain conditions.** Reads are pinned to block hashes (EIP-1898) and revalidated, and reorgs invalidate state and cached reports. It falls back to labelled current state when providers prune history, recognises EIP-7702 delegated accounts and UNI-style uint96 "infinite" approvals, and keeps exact uint256 strings with no floats.
-- **Production-shaped backend.** Job leases make stale workers stop. A self-healing heartbeat, atomic SQL budgets (per-client, daily, model), refunds for non-existent transactions, and structured logs that never contain secrets.
-- **Strictly typed and tested.** Frozen Pydantic models, mypy strict, 60 backend tests on SQLite and PostgreSQL in CI, frontend unit tests, Playwright browser tests at four viewports, and a Docker smoke test.
+The adversarial cases script prompt injection, fabricated claims, invalid tool calls, advice for another owner's permission, and provider failure. All run without a network, model provider, or RPC. See the [evaluation methodology and fixtures](evals/README.md).
 
-## Networks
+## Engineering details
 
-Ethereum and Monad share one EVM pipeline. Ethereum is where most approval risk and liquidity sit. Monad shows the pipeline is chain-agnostic on a high-throughput EVM. Adding a chain is a registry entry and an RPC URL.
+- **Chain correctness:** EIP-1898 block-hash pinning, reorg invalidation, archive-RPC fallback labels, exact uint256 strings, EIP-7702 delegated accounts, and UNI-style uint96 infinite approvals.
+- **Agent reliability:** frozen Pydantic models, typed tools, hard budgets, model-call traces, one-shot repair, and a deterministic benchmark/fallback.
+- **Backend resilience:** stale-worker leases, a self-healing heartbeat, atomic SQL budgets, refunds for missing transactions, and structured logs that exclude secrets.
+- **Frontend resilience:** recorded analyses remain usable while the hosted backend sleeps or is unavailable.
 
 ## Stack
 
 | Layer | Technology |
 | --- | --- |
-| Agent | NOOA `PredictStrategy`, OpenRouter, typed tool calls, grounding validator |
+| Agent | NVIDIA NOOA `PredictStrategy`, OpenRouter, typed tool calls, grounding validator |
 | Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy, Alembic |
-| On-chain | EVM JSON-RPC, ABI and event decoding, ERC-20/721, EIP-1967, EIP-1898, EIP-7702 |
+| On-chain | EVM JSON-RPC, ABI/event decoding, ERC-20/721, EIP-1967, EIP-1898, EIP-7702 |
 | Frontend | React 19, TypeScript, Vite |
-| Infrastructure | Docker on Render, PostgreSQL, Cloudflare Workers, GitHub Actions |
+| Infrastructure | Docker, Render, PostgreSQL, Cloudflare Workers, GitHub Actions |
 
 ## Run locally
 
-Requires Python 3.12, uv, Node 22.12+, npm and Make. The backend needs Linux or macOS (NOOA imports `fcntl`); on Windows, use WSL.
+Requirements: Python 3.12, [uv](https://docs.astral.sh/uv/), Node 22.12+, npm, and Make. NOOA imports `fcntl`, so Windows development requires WSL.
 
 ```sh
-cp .env.example .env   # once
+cp .env.example .env
 make install
-make backend           # terminal 1: migrations, then localhost:8000
-make frontend          # terminal 2: localhost:5173
+make backend     # terminal 1: migrations, then localhost:8000
+make frontend    # terminal 2: localhost:5173
 ```
 
-Without `OPENROUTER_API_KEY`, the rule-based baseline produces the investigation and advice, so everything works offline from a model. For drift checks, use an archive-capable RPC (the Ethereum default is one).
+`OPENROUTER_API_KEY` is optional. Without it, the rule-based baseline produces the investigation and advice, so the system still runs without a model provider.
 
-## Testing
+## Test and evaluate
 
 ```sh
-make check        # lint, types, unit tests, build
+make check        # lint, types, unit tests, frontend build
 make evaluate     # 24 offline evaluation cases
-cd frontend && npx playwright install chromium && npm run test:e2e
+
+cd frontend
+npx playwright install chromium
+npm run test:e2e  # 15 browser tests
 ```
 
-## Deployment
+The same checks run in [GitHub Actions](.github/workflows/ci.yml).
 
-[traceintel.eshita.dev](https://traceintel.eshita.dev) runs on Cloudflare → Render Docker → PostgreSQL. The demo backend uses Render's free tier, so the first visit after a quiet period can take up to two minutes to wake; the UI retries automatically. See [deployment](docs/deployment.md).
+## Supported networks
 
-## Limitations
+Ethereum and Monad use the same EVM analysis pipeline. Adding another chain requires a registry entry and an RPC URL.
 
-- Snapshots, not monitoring. "Now" is the recorded block.
-- Analyzes one transaction's permissions, not a whole wallet; wallet-wide scans need an indexer.
-- "Changed since approval" needs approval-block state. Free Monad RPCs keep about two weeks, so older checks are reported as unverifiable.
-- EIP-1967 proxies only; UUPS upgrade authority inside implementations is reported as undetermined.
-- ERC-4337 smart-account approvals appear as "other contracts", because their transactions are sent by bundlers.
-- Risk scores and recommendations describe evidence. They are not safety ratings.
+## Current limitations
+
+- Analysis is a snapshot, not continuous monitoring. "Now" means the pinned block recorded in the report.
+- A run covers one transaction's permissions, not every approval in a wallet.
+- "Changed since approval" requires historical state. Older Monad history may be unavailable from free RPC providers.
+- Proxy analysis currently covers EIP-1967. Upgrade authority implemented elsewhere is reported as undetermined.
+- ERC-4337 smart-account approvals appear as other-contract approvals because bundlers submit the transaction.
+- Recommendations explain evidence and risk. They are not safety ratings.
+
+## Documentation
+
+- [Agent architecture and guardrails](docs/agents.md)
+- [System architecture](docs/architecture.md)
+- [Evaluation suite](evals/README.md)
+- [NOOA integration](docs/nooa.md)
+- [API reference](docs/api.md)
+- [Deployment notes](docs/deployment.md)
