@@ -1,10 +1,35 @@
 import { expect, test } from "@playwright/test";
 import fixture from "./fixtures/exposure-report.json" with { type: "json" };
 
+test("recorded walkthrough stays available while the backend wakes", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/ready", (route) =>
+    route.fulfill({ status: 503, body: "{}" }),
+  );
+  await page.goto("/");
+  await expect(
+    page.getByRole("link", {
+      name: "Watch the recorded walkthrough while you wait",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByTitle("TraceIntel recorded product walkthrough"),
+  ).toBeVisible();
+});
+
 test("automatically recovers readiness and loads networks after a cold start", async ({
   page,
 }) => {
   let ready = false;
+  await page.route("**/api/v1/chains", (route) =>
+    route.fulfill({
+      json: [
+        { slug: "ethereum", name: "Ethereum" },
+        { slug: "monad", name: "Monad" },
+      ],
+    }),
+  );
   await page.route("**/api/v1/ready", (route) =>
     route.fulfill(
       !ready
@@ -17,12 +42,14 @@ test("automatically recovers readiness and loads networks after a cold start", a
   await page.goto("/");
   await expect(page.getByText("Backend waking up…").first()).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Analyze transaction →" }),
+    page.getByRole("button", { name: "Analyze transaction" }),
   ).toBeDisabled();
   ready = true;
-  await expect(page.getByText("API connected")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("Live analysis ready")).toBeVisible({
+    timeout: 10000,
+  });
   await expect(
-    page.getByRole("button", { name: "Analyze transaction →" }),
+    page.getByRole("button", { name: "Analyze transaction" }),
   ).toBeEnabled();
   await page.getByRole("radio", { name: "Ethereum" }).focus();
   await page.keyboard.press("ArrowRight");
@@ -34,6 +61,19 @@ for (const chain of ["ethereum", "monad"]) {
     chain + " selection determines the submitted chain",
     async ({ page }) => {
       let submitted: { chain: string } | undefined;
+      await page.route("**/api/v1/ready", (route) =>
+        route.fulfill({
+          json: { status: "ok", service: "traceintel-api", version: "0.1.0" },
+        }),
+      );
+      await page.route("**/api/v1/chains", (route) =>
+        route.fulfill({
+          json: [
+            { slug: "ethereum", name: "Ethereum" },
+            { slug: "monad", name: "Monad" },
+          ],
+        }),
+      );
       await page.route("**/api/v1/analyses", (route) => {
         submitted = route.request().postDataJSON();
         return route.fulfill({
@@ -42,14 +82,14 @@ for (const chain of ["ethereum", "monad"]) {
         });
       });
       await page.goto("/");
-      await expect(page.getByText("API connected")).toBeVisible();
+      await expect(page.getByText("Live analysis ready")).toBeVisible();
       await page
         .getByRole("radio", {
           name: chain === "ethereum" ? "Ethereum" : "Monad",
         })
         .press("Space");
       await page.getByLabel("Transaction hash").fill(fixture.transaction_hash);
-      await page.getByRole("button", { name: "Analyze transaction →" }).click();
+      await page.getByRole("button", { name: "Analyze transaction" }).click();
       await expect(page.getByRole("alert")).toContainText(
         "Test submission captured",
       );
@@ -61,6 +101,19 @@ for (const chain of ["ethereum", "monad"]) {
 test("report and homepage fit desktop, tablet and mobile; favicon is served", async ({
   page,
 }) => {
+  await page.route("**/api/v1/ready", (route) =>
+    route.fulfill({
+      json: { status: "ok", service: "traceintel-api", version: "0.1.0" },
+    }),
+  );
+  await page.route("**/api/v1/chains", (route) =>
+    route.fulfill({
+      json: [
+        { slug: "ethereum", name: "Ethereum" },
+        { slug: "monad", name: "Monad" },
+      ],
+    }),
+  );
   await page.route("**/api/v1/reports/" + fixture.id, (route) =>
     route.fulfill({ json: fixture }),
   );

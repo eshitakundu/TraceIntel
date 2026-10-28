@@ -30,7 +30,7 @@ test("shows activity immediately while waiting for acceptance and never submits 
   );
   await page.goto("/");
   await page.getByLabel("Transaction hash").fill(hash);
-  await page.getByRole("button", { name: "Analyze transaction →" }).click();
+  await page.getByRole("button", { name: "Analyze transaction" }).click();
   await expect(page.getByText("Submitting transaction…")).toBeVisible();
   await expect(page.locator(".activity-spinner")).toBeVisible();
   await expect(
@@ -74,13 +74,13 @@ test("a backend that slept after page load wakes before the POST is sent", async
     });
   });
   await page.goto("/");
-  await expect(page.getByText("API connected")).toBeVisible();
+  await expect(page.getByText("Live analysis ready")).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Analyze transaction →" }),
+    page.getByRole("button", { name: "Analyze transaction" }),
   ).toBeEnabled();
   ready = false;
   await page.getByLabel("Transaction hash").fill(hash);
-  await page.getByRole("button", { name: "Analyze transaction →" }).click();
+  await page.getByRole("button", { name: "Analyze transaction" }).click();
   await expect(page.locator(".activity-status")).toContainText(
     "Backend waking up…",
   );
@@ -105,16 +105,16 @@ test("gateway failure preserves input, rechecks connectivity and requires explic
   });
   await page.goto("/");
   await page.getByLabel("Transaction hash").fill(hash);
-  await page.getByRole("button", { name: "Analyze transaction →" }).click();
+  await page.getByRole("button", { name: "Analyze transaction" }).click();
   await expect(page.getByRole("alert")).toContainText(
     "may already have been accepted",
   );
   await expect(
-    page.getByRole("button", { name: "Retry analysis →" }),
+    page.getByRole("button", { name: "Retry analysis" }),
   ).toBeEnabled();
   await expect(page.getByLabel("Transaction hash")).toHaveValue(hash);
   expect(posts).toBe(1);
-  await page.getByRole("button", { name: "Retry analysis →" }).click();
+  await page.getByRole("button", { name: "Retry analysis" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
   expect(posts).toBe(2);
 });

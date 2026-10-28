@@ -978,3 +978,204 @@
     margin: 0 16px 16px;
   }
 }
+
+/* Light evidence sheet used by recorded examples and live reports alike. */
+.report-page {
+  padding-top: 22px;
+}
+.report-page .report-topline {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line-2);
+}
+.report-page .report-topline a {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-2);
+}
+.report-page .report-header,
+.report-page .metric-card,
+.report-page .report-section,
+.report-page .briefing {
+  border-radius: 0;
+  border-color: var(--line-2);
+  background: #f3f5f5;
+  box-shadow: none;
+}
+.report-page .report-header {
+  padding: 34px 32px;
+  border-top: 3px solid #17191d;
+}
+.report-page .report-header .eyebrow,
+.report-page .briefing-head .eyebrow {
+  color: var(--cobalt-3);
+}
+.report-page .report-header code.hash {
+  border-radius: 0;
+  border-color: var(--line-2);
+  background: #fff;
+  color: var(--ink-2);
+}
+.report-page .metric-card.current {
+  border-color: rgb(41 56 216 / 0.48);
+  background: rgb(41 56 216 / 0.055);
+}
+.report-page .meter {
+  border-radius: 0;
+  background: #d4d9dc;
+}
+.report-page .meter i {
+  border-radius: 0;
+  background: #17191d;
+}
+.report-page .metric-card.current .meter i {
+  background: var(--cobalt);
+}
+.report-page .report-actions > [role="status"] {
+  color: #14624f;
+}
+.report-page .report-nav {
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--line-2);
+  border-bottom: 1px solid var(--line-2);
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.report-page .report-nav a {
+  padding: 10px 8px;
+  border-radius: 0;
+}
+.report-page .report-nav a:hover {
+  color: var(--ink);
+  background: rgb(23 25 29 / 0.045);
+}
+.report-page .report-nav a.active {
+  color: var(--cobalt-3);
+  background: transparent;
+  box-shadow: inset 3px 0 0 var(--cobalt);
+}
+.report-page .count,
+.report-page .author-chip,
+.report-page .exposure-badge,
+.report-page .severity,
+.report-page .role {
+  border-radius: 0;
+  background: #e2e6e8;
+}
+.report-page .evidence-links a {
+  border-radius: 0;
+  background: rgb(41 56 216 / 0.08);
+  color: var(--cobalt-3);
+}
+.report-page .evidence-links a:hover {
+  background: var(--cobalt);
+  color: #fff;
+}
+.report-page .permission-card,
+.report-page .approval-card,
+.report-page .contract-card,
+.report-page .signal-card,
+.report-page .action-card,
+.report-page .raw-evidence,
+.report-page .comparison-side,
+.report-page .empty,
+.report-page .no-action {
+  border-radius: 0;
+  border-color: var(--line-2);
+  background: #fff;
+  box-shadow: none;
+}
+.report-page .comparison-side.now {
+  border-color: rgb(41 56 216 / 0.36);
+  background: rgb(41 56 216 / 0.055);
+}
+.report-page .comparison-side.now .label,
+.report-page .state-SUPERSEDED,
+.report-page .severity.low,
+.report-page .briefing-foot a,
+.report-page .trace-actor.tool,
+.report-page .role-sender {
+  color: var(--cobalt-3);
+}
+.report-page .exposure-takeaway {
+  border-radius: 0;
+  background: rgb(41 56 216 / 0.055);
+}
+.report-page .state-ACTIVE,
+.report-page .state-PARTIALLY_ACTIVE,
+.report-page .severity.medium,
+.report-page .consider_revoking .action-kind,
+.report-page .trace-step.rejected .trace-actor,
+.report-page .trace-step.error .trace-actor,
+.report-page .trace-status {
+  color: #8a2e18;
+}
+.report-page .state-REVOKED,
+.report-page .trace-actor.reporter {
+  color: #14624f;
+}
+.report-page .severity.high,
+.report-page .severity.critical {
+  color: #a72b23;
+}
+.report-page .coverage-banner {
+  border-radius: 0;
+  border-color: rgb(182 77 34 / 0.36);
+  background: rgb(182 77 34 / 0.065);
+  color: #6d2c12;
+}
+.report-page .coverage-banner a {
+  color: #6d2c12;
+}
+.report-page .author-chip.model {
+  color: #fff;
+  border-color: var(--cobalt);
+  background: var(--cobalt);
+}
+.report-page .action-kind,
+.report-page .trace-actor.tool,
+.report-page .role-sender {
+  background: rgb(41 56 216 / 0.08);
+}
+.report-page .consider_revoking .action-kind,
+.report-page .trace-step.rejected .trace-actor,
+.report-page .trace-step.error .trace-actor {
+  background: rgb(182 77 34 / 0.08);
+}
+.report-page .trace-actor.reporter {
+  background: rgb(33 134 111 / 0.08);
+}
+.report-page .trace-actor {
+  border-radius: 0;
+  background: #e2e6e8;
+}
+.report-page .table-scroll {
+  border-radius: 0;
+  background: #fff;
+}
+.report-page th {
+  background: #e2e6e8;
+}
+.report-page pre {
+  border-radius: 0;
+  background: #17191d;
+  color: #f5f6f4;
+}
+
+@media (max-width: 760px) {
+  .report-page {
+    padding-top: 8px;
+  }
+  .report-page .report-header,
+  .report-page .briefing,
+  .report-page .report-section {
+    padding: 22px 18px;
+    border-radius: 0;
+  }
+}

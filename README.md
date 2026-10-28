@@ -2,7 +2,7 @@
 
 **Can a contract you approved still take your tokens, has it changed since you said yes, and should you revoke it?**
 
-[Live app](https://traceintel.eshita.dev) · [How the agent works](docs/agents.md) · [Evaluations](evals/README.md) · [Architecture](docs/architecture.md)
+[Live app](https://traceintel.eshita.dev) · [Recorded walkthrough](https://drive.google.com/file/d/1-5eEX6gudDaP5FLFxx9WotcHQ9CJlThD/view) · [How the agent works](docs/agents.md) · [Evaluations](evals/README.md) · [Architecture](docs/architecture.md)
 
 ![A TraceIntel report: the agent's briefing and recommended action, then the historical approval beside today's allowance](docs/screenshots/exposure-dashboard.png)
 

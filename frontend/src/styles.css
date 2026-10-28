@@ -1,5 +1,5 @@
-/* TraceIntel design system: quiet black glass, translucent keycaps and one
-   cobalt-glass accent reserved for primary actions. */
+/* TraceIntel design system: a forensic case file with distinct colors for
+   historical state, current exposure and the final decision. */
 @property --key-lift {
   syntax: "<length>";
   inherits: true;
@@ -8,36 +8,36 @@
 
 :root {
   color-scheme: dark;
-  --font-sans: "Geist Variable", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, "Cascadia Code", monospace;
-  --font-pixel: "Silkscreen", "Geist Mono Variable", monospace;
+  --font-sans: "Atkinson Hyperlegible Next Variable", "Trebuchet MS", sans-serif;
+  --font-mono: "Martian Mono", "Cascadia Code", monospace;
+  --font-pixel: var(--font-mono);
 
-  --bg: #050507;
-  --ink: #f4f5f7;
-  --ink-2: #b3b6c0;
-  --ink-3: #858894;
-  --line: rgb(255 255 255 / 0.07);
-  --line-2: rgb(255 255 255 / 0.12);
-  --line-3: rgb(255 255 255 / 0.2);
-  --fill: rgb(16 17 22 / 0.7);
+  --bg: #061019;
+  --ink: #f7f2e8;
+  --ink-2: #c4ccd5;
+  --ink-3: #84909d;
+  --line: rgb(213 226 237 / 0.08);
+  --line-2: rgb(213 226 237 / 0.14);
+  --line-3: rgb(213 226 237 / 0.24);
+  --fill: rgb(10 24 35 / 0.92);
   --sheen: linear-gradient(
     180deg,
     rgb(255 255 255 / 0.05),
     rgb(255 255 255 / 0.01) 40%
   );
 
-  --cobalt: #3b5bff;
-  --cobalt-2: #6a82ff;
-  --cobalt-3: #b9c4ff;
-  --lime: #b4f24a;
-  --lime-2: #d9ff99;
-  --amber: #ffbd59;
-  --rose: #ff7a90;
+  --cobalt: #735cff;
+  --cobalt-2: #9a89ff;
+  --cobalt-3: #d3cdff;
+  --lime: #42dfc0;
+  --lime-2: #b6f6e9;
+  --amber: #ffb45c;
+  --rose: #ff705d;
 
-  --radius-xl: 26px;
-  --radius-lg: 20px;
-  --radius: 14px;
-  --radius-sm: 10px;
+  --radius-xl: 14px;
+  --radius-lg: 12px;
+  --radius: 9px;
+  --radius-sm: 7px;
   --shadow-glass:
     inset 0 1px 0 rgb(255 255 255 / 0.06), 0 24px 50px -30px rgb(0 0 0 / 0.9);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -65,14 +65,217 @@ body {
   margin: 0;
   min-height: 100vh;
 }
+body:has(.recruiter-hero) {
+  --bg: #e9edef;
+  --ink: #131519;
+  --ink-2: #3f4852;
+  --ink-3: #596571;
+  --line: rgb(23 25 29 / 0.12);
+  --line-2: rgb(23 25 29 / 0.22);
+  --line-3: rgb(23 25 29 / 0.38);
+  --fill: rgb(255 255 255 / 0.72);
+  --sheen: linear-gradient(180deg, rgb(255 255 255 / 0.35), transparent);
+  --cobalt: #2938d8;
+  --cobalt-2: #2938d8;
+  --cobalt-3: #1725b5;
+  --lime: #2938d8;
+  --lime-2: #1725b5;
+  --amber: #ff6238;
+  --rose: #ff6238;
+  background: var(--bg);
+  color: var(--ink);
+}
+body:has(.recruiter-hero) .ambient {
+  display: none;
+}
+body:has(.recruiter-hero) .site-header {
+  border-color: var(--line-2);
+  background: rgb(233 237 239 / 0.94);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+body:has(.recruiter-hero) .brand-key {
+  color: #17191d;
+  border-color: #c6cdd2;
+  background: #f8faf9;
+  box-shadow: none;
+}
+body:has(.recruiter-hero) .site-header nav a:hover,
+body:has(.recruiter-hero) .site-header nav a.active {
+  background: rgb(23 25 29 / 0.08);
+}
+body:has(.recruiter-hero) .site-footer {
+  border-color: var(--line-2);
+}
+body:has(.recruiter-hero) a:hover {
+  color: #2938d8;
+}
+body:has(.recruiter-hero) .brand:hover {
+  color: var(--ink);
+}
+body:has(.recruiter-hero) :where(button:not(.sample), .button) {
+  color: #fff;
+  border-color: #17191d;
+  border-radius: 0;
+  background: #17191d;
+  box-shadow: none;
+}
+body:has(.recruiter-hero)
+  :where(button:not(.sample), .button):hover:not(:disabled) {
+  color: #fff;
+  background: #2938d8;
+  box-shadow: none;
+}
+body:has(.recruiter-hero) :where(button:not(.sample)):disabled {
+  color: var(--ink-3);
+  border-color: var(--line-2);
+  background: rgb(23 25 29 / 0.06);
+}
+body:has(.recruiter-hero) .panel {
+  border-radius: 0;
+  background: #f3f5f5;
+  box-shadow: none;
+}
+body:has(.recruiter-hero) input,
+body:has(.recruiter-hero) select {
+  color: var(--ink);
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+body:has(.recruiter-hero) input:focus,
+body:has(.recruiter-hero) select:focus {
+  border-color: #2938d8;
+  box-shadow: 0 0 0 3px rgb(41 56 216 / 0.12);
+}
+body:has(.recruiter-hero) .keycap {
+  color: var(--ink);
+  border-color: var(--line-2);
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+body:has(.recruiter-hero) .keycap::before {
+  display: none;
+}
+body:has(.recruiter-hero) .badge {
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Recorded examples continue the landing page's forensic-paper system. */
+body:has(.trace-light-page) {
+  --bg: #e9edef;
+  --ink: #131519;
+  --ink-2: #3f4852;
+  --ink-3: #596571;
+  --line: rgb(23 25 29 / 0.12);
+  --line-2: rgb(23 25 29 / 0.22);
+  --line-3: rgb(23 25 29 / 0.38);
+  --fill: #f3f5f5;
+  --sheen: none;
+  --cobalt: #2938d8;
+  --cobalt-2: #2938d8;
+  --cobalt-3: #1725b5;
+  --lime: #21866f;
+  --lime-2: #14624f;
+  --amber: #b64d22;
+  --rose: #c94325;
+  color: var(--ink);
+  background: var(--bg);
+}
+body:has(.trace-light-page) .ambient {
+  display: none;
+}
+body:has(.trace-light-page) .site-header {
+  border-color: var(--line-2);
+  background: rgb(233 237 239 / 0.94);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+body:has(.trace-light-page) .brand-key {
+  color: #17191d;
+  border-color: #c6cdd2;
+  background: #f8faf9;
+  box-shadow: none;
+}
+body:has(.trace-light-page) .site-header nav a:hover,
+body:has(.trace-light-page) .site-header nav a.active {
+  background: rgb(23 25 29 / 0.08);
+}
+body:has(.trace-light-page) .site-footer {
+  border-color: var(--line-2);
+}
+body:has(.trace-light-page) a:hover {
+  color: var(--cobalt);
+}
+body:has(.trace-light-page) .brand:hover {
+  color: var(--ink);
+}
+body:has(.trace-light-page) :where(button:not(.sample), .button) {
+  color: #fff;
+  border-color: #17191d;
+  border-radius: 0;
+  background: #17191d;
+  box-shadow: none;
+}
+body:has(.trace-light-page)
+  :where(button:not(.sample), .button):hover:not(:disabled) {
+  color: #fff;
+  border-color: var(--cobalt);
+  background: var(--cobalt);
+  box-shadow: none;
+}
+body:has(.trace-light-page) .secondary {
+  color: var(--ink);
+  border-color: var(--line-3);
+  background: transparent;
+}
+body:has(.trace-light-page) .panel,
+body:has(.trace-light-page) .keycap {
+  color: var(--ink);
+  border-color: var(--line-2);
+  border-radius: 0;
+  background: #f8faf9;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+body:has(.trace-light-page) .keycap::before {
+  display: none;
+}
 ::selection {
   background: rgb(106 130 255 / 0.4);
   color: #fff;
+}
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 10px;
+  left: 10px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 650;
+  transform: translateY(-160%);
+  transition: transform 0.2s var(--ease-out);
+}
+.skip-link:focus-visible {
+  color: var(--bg);
+  transform: translateY(0);
 }
 a {
   color: inherit;
   text-decoration: none;
   transition: color 0.2s var(--ease-out);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgb(41 56 216 / 0.16);
 }
 a:hover {
   color: #fff;
@@ -87,6 +290,7 @@ h2,
 h3 {
   color: var(--ink);
   text-wrap: balance;
+  scroll-margin-top: 110px;
 }
 h1 {
   font-size: clamp(34px, 4.4vw, 60px);
@@ -151,18 +355,18 @@ small,
   left: -30vmax;
   background: radial-gradient(
     closest-side,
-    rgb(255 170 120 / 0.07),
+    rgb(255 112 93 / 0.06),
     transparent
   );
 }
 .orb-cool {
   top: -30vmax;
   right: -36vmax;
-  background: radial-gradient(closest-side, rgb(59 91 255 / 0.1), transparent);
+  background: radial-gradient(closest-side, rgb(115 92 255 / 0.11), transparent);
   animation: drift 40s ease-in-out infinite alternate;
 }
 
-header {
+.site-header {
   position: sticky;
   top: 14px;
   z-index: 30;
@@ -173,9 +377,9 @@ header {
   justify-content: space-between;
   gap: 16px;
   padding: 6px 8px 6px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--line-2);
-  background: rgb(12 13 17 / 0.72);
+  background: rgb(6 16 25 / 0.82);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   box-shadow: var(--shadow-glass);
@@ -187,35 +391,37 @@ header {
   padding-right: 10px;
   font-size: 13px;
   font-weight: 650;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.16em;
 }
 .brand-key {
   width: 38px;
   height: 36px;
   border-radius: 11px;
+  border-color: #c6cdd2;
+  background: #f8faf9;
 }
 .brand-mark {
   width: 18px;
   height: 18px;
 }
-header nav {
+.site-header nav {
   display: flex;
   align-items: center;
   gap: 2px;
   font-size: 13.5px;
   color: var(--ink-2);
 }
-header nav a {
+.site-header nav a {
   padding: 9px 15px;
-  border-radius: 999px;
+  border-radius: 7px;
   transition:
     background 0.25s var(--ease-out),
     color 0.25s var(--ease-out);
 }
-header nav a:hover {
+.site-header nav a:hover {
   background: rgb(255 255 255 / 0.05);
 }
-header nav a.active {
+.site-header nav a.active {
   color: var(--ink);
   background: rgb(255 255 255 / 0.08);
 }
@@ -226,7 +432,7 @@ main {
   margin: 0 auto;
   padding: 44px 24px 96px;
 }
-footer {
+.site-footer {
   width: min(1240px, calc(100% - 48px));
   margin: 0 auto;
   display: flex;
@@ -319,18 +525,18 @@ button {
   justify-content: center;
   gap: 8px;
   padding: var(--pad);
-  border-radius: 999px;
+  border-radius: 8px;
   font: 600 14px/1.2 var(--font-sans);
   letter-spacing: -0.005em;
   cursor: pointer;
   color: #fff;
-  border: 1px solid rgb(150 170 255 / 0.45);
+  border: 1px solid rgb(211 205 255 / 0.45);
   background:
     linear-gradient(180deg, rgb(255 255 255 / 0.18), rgb(255 255 255 / 0) 60%),
-    rgb(59 91 255 / 0.55);
+    rgb(115 92 255 / 0.7);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.3),
-    0 10px 30px -14px rgb(59 91 255 / 0.8);
+    0 10px 30px -14px rgb(115 92 255 / 0.72);
   transition:
     transform 0.35s var(--ease-spring),
     background 0.25s var(--ease-out),
@@ -341,10 +547,10 @@ button {
   transform: translateY(-1px);
   background:
     linear-gradient(180deg, rgb(255 255 255 / 0.22), rgb(255 255 255 / 0) 60%),
-    rgb(59 91 255 / 0.7);
+    rgb(115 92 255 / 0.86);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.35),
-    0 14px 36px -12px rgb(59 91 255 / 0.9);
+    0 14px 36px -12px rgb(115 92 255 / 0.85);
 }
 :where(button:not(.sample), .button):active:not(:disabled) {
   transform: translateY(1px) scale(0.985);
@@ -409,11 +615,15 @@ input:hover:not(:disabled) {
 }
 input:focus,
 select:focus {
-  outline: none;
   border-color: rgb(106 130 255 / 0.7);
   box-shadow:
     inset 0 2px 8px rgb(0 0 0 / 0.5),
     0 0 0 4px rgb(106 130 255 / 0.15);
+}
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--cobalt-2);
+  outline-offset: 3px;
 }
 input:disabled {
   opacity: 0.7;
@@ -451,6 +661,12 @@ input:disabled {
     background 0.35s var(--ease-out),
     border-color 0.35s,
     color 0.3s;
+}
+
+button,
+.button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgb(41 56 216 / 0.16);
 }
 /* Concave dish on the cap. */
 .keycap::before {
@@ -490,7 +706,7 @@ input:disabled {
   align-items: center;
   gap: 6px;
   padding: 4px 11px;
-  border-radius: 999px;
+  border-radius: 7px;
   border: 1px solid var(--line-2);
   background: rgb(255 255 255 / 0.03);
   font: 500 10.5px/1.5 var(--font-mono);
@@ -640,7 +856,7 @@ input:disabled {
 }
 
 @media (max-width: 760px) {
-  header {
+  .site-header {
     position: relative;
     top: 0;
     flex-wrap: wrap;
@@ -648,12 +864,12 @@ input:disabled {
     border-radius: var(--radius-lg);
     padding: 8px;
   }
-  header nav {
+  .site-header nav {
     width: 100%;
     justify-content: space-between;
     font-size: 13px;
   }
-  header nav a {
+  .site-header nav a {
     padding: 8px 10px;
   }
   main {
@@ -663,7 +879,7 @@ input:disabled {
     padding: 22px 18px;
     border-radius: var(--radius-lg);
   }
-  footer {
+  .site-footer {
     width: calc(100% - 32px);
     font-size: 10px;
   }

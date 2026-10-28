@@ -4,7 +4,7 @@ test("connects to FastAPI and navigates documentation", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await expect(page.getByText("API connected")).toBeVisible();
+  await expect(page.getByText("Live analysis ready")).toBeVisible();
   await page.getByRole("link", { name: "Methodology", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Evidence before interpretation." }),
@@ -15,7 +15,7 @@ test("connects to FastAPI and navigates documentation", async ({ page }) => {
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByText("API connected")).toBeVisible();
+  await expect(page.getByText("Live analysis ready")).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -36,7 +36,7 @@ test("shows a real API failure and allows retry", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Backend waking up…").first()).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Analyze transaction →" }),
+    page.getByRole("button", { name: "Analyze transaction" }),
   ).toBeDisabled();
   for (let attempt = 0; attempt < 8; attempt++) {
     await page.clock.runFor(16000);
@@ -44,5 +44,5 @@ test("shows a real API failure and allows retry", async ({ page }) => {
   await expect(page.getByText("API unavailable")).toBeVisible();
   await page.unroute("**/api/v1/ready");
   await page.getByRole("button", { name: "Retry connection" }).click();
-  await expect(page.getByText("API connected")).toBeVisible();
+  await expect(page.getByText("Live analysis ready")).toBeVisible();
 });

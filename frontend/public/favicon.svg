@@ -1,1 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="#79dfc3" d="M3 4h26v6H19v18h-6V10H3z"/><path fill="#f1f5f3" d="M23 15h6v6h-6z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>TraceIntel</title>
+  <rect width="32" height="32" rx="6" fill="#2938d8"/>
+  <path fill="#fff" fill-rule="evenodd" d="M5 5h14v14H5V5zm4 4v6h6V9H9zm4 4h14v14H13V13zm4 4v6h6v-6h-6z"/>
+</svg>
