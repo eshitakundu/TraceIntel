@@ -5,6 +5,7 @@ import BackendStatus from "../components/BackendStatus";
 import { Link, useParams, useOutletContext } from "react-router-dom";
 import { getReport } from "../api/analysis";
 import type { Report } from "../types/report";
+import { getSavedReport } from "../data/savedReports";
 import EvidenceLinks from "../components/EvidenceLinks";
 import ExposurePanel, { ExposureMetrics } from "../components/ExposurePanel";
 import AgentBriefing from "../components/AgentBriefing";
@@ -37,12 +38,19 @@ const sectionNames: Record<string, string> = {
 };
 export default function ReportPage() {
   const { id = "" } = useParams();
+  const savedId = id.startsWith("saved-") ? id.slice(6) : "";
+  const savedReport = getSavedReport(savedId);
   const { state } = useOutletContext<ReturnType<typeof useHealth>>();
-  const [report, setReport] = useState<Report | null>(null);
+  const [report, setReport] = useState<Report | null>(savedReport);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
   const active = useActiveSection(sections, report !== null);
   useEffect(() => {
+    if (savedReport) {
+      setReport(savedReport);
+      setError("");
+      return;
+    }
     if (state !== "connected") return;
     const controller = new AbortController();
     getReport(id, controller.signal)
@@ -56,17 +64,27 @@ export default function ReportPage() {
           );
       });
     return () => controller.abort();
-  }, [id, state]);
-  if (state !== "connected") return <BackendStatus />;
+  }, [id, savedReport, state]);
+  if (!savedReport && state !== "connected")
+    return (
+      <section className="document trace-light-page live-analysis">
+        <BackendStatus />
+      </section>
+    );
   if (error)
     return (
-      <section className="document">
+      <section className="document trace-light-page live-analysis">
         <h1>Report unavailable</h1>
         <p role="alert">{error}</p>
         <Link to="/">Return to workspace</Link>
       </section>
     );
-  if (!report) return <p role="status">Loading stored report…</p>;
+  if (!report)
+    return (
+      <section className="document trace-light-page route-loading">
+        <p role="status">Loading stored report…</p>
+      </section>
+    );
   const tx = report.decoded.transaction;
   const coverage = [
     ...report.coverage,
@@ -83,11 +101,31 @@ export default function ReportPage() {
       setCopied("Copy this page URL from your address bar.");
     }
   }
+  function downloadSavedReport() {
+    if (!savedReport) return;
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(savedReport, null, 2)], {
+        type: "application/json",
+      }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = savedReport.id + ".json";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
   return (
-    <>
+    <div
+      className={
+        "report-page trace-light-page" +
+        (savedReport ? " recorded-report-page" : "")
+      }
+    >
       <div className="report-topline">
         <Link to="/">← New analysis</Link>
-        <span className="label">SAVED REPORT</span>
+        <span className="label">
+          {savedReport ? "RECORDED REPORT · OFFLINE SAFE" : "SAVED REPORT"}
+        </span>
       </div>
       <section className="report-header">
         <div>
@@ -126,12 +164,18 @@ export default function ReportPage() {
         <button className="secondary" onClick={() => void copyLink()}>
           Copy report link
         </button>
-        <a
-          className="button"
-          href={"/api/v1/reports/" + report.id + "/download"}
-        >
-          Download JSON ↓
-        </a>
+        {savedReport ? (
+          <button className="secondary" onClick={downloadSavedReport}>
+            Download saved JSON
+          </button>
+        ) : (
+          <a
+            className="button"
+            href={"/api/v1/reports/" + report.id + "/download"}
+          >
+            Download JSON ↓
+          </a>
+        )}
         <span role="status">{copied}</span>
       </div>
       <div className="report-layout">
@@ -235,6 +279,6 @@ export default function ReportPage() {
           </p>
         </div>
       </div>
-    </>
+    </div>
   );
 }

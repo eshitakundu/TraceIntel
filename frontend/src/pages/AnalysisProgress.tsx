@@ -58,11 +58,16 @@ export default function AnalysisProgress() {
       clearTimeout(timer);
     };
   }, [id, navigate, state]);
-  if (state !== "connected") return <BackendStatus />;
+  if (state !== "connected")
+    return (
+      <section className="document trace-light-page live-analysis">
+        <BackendStatus />
+      </section>
+    );
   const current = stages.indexOf(job?.stage ?? "Queued");
   return (
-    <section className="document">
-      <div className="eyebrow">LIVE ANALYSIS</div>
+    <section className="document trace-light-page live-analysis">
+      <div className="eyebrow">Live analysis</div>
       <h1>Following the evidence.</h1>
       <p className="hash">{job?.transaction_hash}</p>
       {!error && !job?.error && (
@@ -75,7 +80,7 @@ export default function AnalysisProgress() {
         <div role="alert" className="panel">
           <h2>Analysis could not complete</h2>
           <p>{error || job?.error}</p>
-          <Link to="/">Return to workspace →</Link>
+          <Link to="/">Return to workspace</Link>
         </div>
       ) : (
         <ol className="stage-list" aria-live="polite">

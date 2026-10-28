@@ -84,8 +84,10 @@ export default function Documentation({
 }) {
   const cards = kind === "methodology" ? methodology : architecture;
   return (
-    <article className="document">
-      <div className="eyebrow">TRACEINTEL / DESIGN CONTRACT</div>
+    <article className="document trace-light-page reference-page">
+      <div className="eyebrow">
+        {kind === "methodology" ? "How TraceIntel reasons" : "How TraceIntel is built"}
+      </div>
       <h1>
         {kind === "methodology"
           ? "Evidence before interpretation."

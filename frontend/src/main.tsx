@@ -1,9 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import "@fontsource-variable/geist";
-import "@fontsource-variable/geist-mono";
-import "@fontsource/silkscreen/latin-400.css";
+import "@fontsource-variable/atkinson-hyperlegible-next";
+import "@fontsource/martian-mono/latin-400.css";
+import "@fontsource/martian-mono/latin-600.css";
 import App from "./App";
 import "./styles.css";
 import "./landing.css";

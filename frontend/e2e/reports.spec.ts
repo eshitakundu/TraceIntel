@@ -7,7 +7,7 @@ test("@live analyzes a real Ethereum sample and retrieves the stored report", as
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await expect(page.getByText("API connected")).toBeVisible();
+  await expect(page.getByText("Live analysis ready")).toBeVisible();
   await page.screenshot({
     path: "../docs/screenshots/landing.png",
     animations: "disabled",
@@ -55,7 +55,7 @@ test("validates a malformed transaction hash before submission", async ({
 }) => {
   await page.goto("/");
   await page.getByLabel("Transaction hash").fill("0x123");
-  await page.getByRole("button", { name: "Analyze transaction →" }).click();
+  await page.getByRole("button", { name: "Analyze transaction" }).click();
   await expect(page.getByRole("alert")).toContainText("64-digit");
 });
 test("@live renders approval evidence and validated NOOA interpretation", async ({

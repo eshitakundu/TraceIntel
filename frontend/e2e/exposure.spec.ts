@@ -6,13 +6,13 @@ test("explains the two timeframes and provides read-only analysis", async ({
 }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: /Trace what happened/ }),
+    page.getByRole("heading", { name: "What changed after you approved it?" }),
   ).toBeVisible();
   await expect(
-    page.getByText("No wallet connection", { exact: true }),
+    page.getByText(/No wallet connection, signing, or private information/),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Does it still exist?" }),
+    page.getByRole("heading", { name: "Watch a permission become a decision." }),
   ).toBeVisible();
   await page.screenshot({
     path: "../docs/screenshots/landing.png",
