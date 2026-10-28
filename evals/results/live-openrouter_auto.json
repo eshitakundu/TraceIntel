@@ -1,0 +1,110 @@
+{
+  "model": "openrouter/auto",
+  "ran_at": "2026-10-28T22:18:26+00:00",
+  "baseline": {
+    "advice_accuracy": 1.0,
+    "grounded_rate": 1.0,
+    "model_authored_rate": 0.0,
+    "repairs": 0,
+    "llm_calls": 0,
+    "median_seconds": 0.0
+  },
+  "model_summary": {
+    "advice_accuracy": 0.5,
+    "grounded_rate": 1.0,
+    "model_authored_rate": 1.0,
+    "repairs": 0,
+    "llm_calls": 19,
+    "median_seconds": 24.9
+  },
+  "cases": [
+    {
+      "scenario": "spender upgraded after the approval",
+      "author": "model",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 24.9,
+      "reason": null
+    },
+    {
+      "scenario": "spender is a key-held account",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 2,
+      "seconds": 28.2,
+      "reason": null
+    },
+    {
+      "scenario": "single key controls spender upgrades",
+      "author": "model",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 2,
+      "seconds": 8.5,
+      "reason": null
+    },
+    {
+      "scenario": "recognised router, unchanged, finite allowance",
+      "author": "model",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 2,
+      "seconds": 21.5,
+      "reason": null
+    },
+    {
+      "scenario": "unrecognised contract, unchanged, finite allowance",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 26.1,
+      "reason": null
+    },
+    {
+      "scenario": "recognised protocol, allowance raised to unlimited since",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 28.8,
+      "reason": null
+    },
+    {
+      "scenario": "allowance already revoked",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 1,
+      "seconds": 4.1,
+      "reason": null
+    },
+    {
+      "scenario": "approval-block state pruned by the provider",
+      "author": "model",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 5.7,
+      "reason": null
+    }
+  ]
+}

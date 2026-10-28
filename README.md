@@ -49,11 +49,28 @@ Built on [NOOA](docs/nooa.md) (NVIDIA's agent framework) with OpenRouter models.
 
 `make evaluate` runs **24 offline cases in CI**: historical rules, approval ownership on a real transaction, six exposure transitions, **eight labelled agent scenarios** (upgraded spender, key-held spender, single-key upgrades, recognised router, raised-to-unlimited, revoked, pruned history…) and **five adversarial guardrail cases** in which the model itself is scripted to misbehave. `scripts/verify_nooa_live.py` scores a real model against the rule-based baseline on the same scenarios. [Details](evals/README.md).
 
+### Live model vs baseline (28 Oct 2026, free-tier OpenRouter key)
+
+The same 8 labelled agent scenarios, with the on-chain world scripted so only the model varies. Raw results: [`evals/results/`](evals/results/).
+
+| Run | Advice matches label | Grounded | Briefings written by the model | Model calls | Median time |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Rule-based baseline | 8 / 8 | 8 / 8 | n/a | 0 | under 0.1 s |
+| `openrouter/auto` (production setting) | 4 / 8 | 8 / 8 | 8 / 8 | 19 | 24.9 s |
+| `nvidia/nemotron-3.5-super-vl:free` | 7 / 8 | 8 / 8 | 0 / 8 | 7 | 44.9 s |
+
+What this shows:
+
+- **The guardrails held every time.** No run produced an ungrounded claim, including when the model's advice was wrong.
+- **The model does not beat the baseline yet.** With free automatic routing it matched the label in 4 of 8 scenarios. That is why the baseline stays the benchmark and the fallback.
+- **Failures degrade safely.** The pinned free model broke the required format or timed out in every scenario, so the baseline wrote all 8 briefings. One planning timeout left an investigation incomplete, and that is the single miss.
+- **Limits.** 8 scenarios is a small sample, and `openrouter/auto` can route to different models from run to run.
+
 ## Engineering highlights
 
 - **Correct under real chain conditions.** Reads are pinned to block hashes (EIP-1898) and revalidated, and reorgs invalidate state and cached reports. It falls back to labelled current state when providers prune history, recognises EIP-7702 delegated accounts and UNI-style uint96 "infinite" approvals, and keeps exact uint256 strings with no floats.
 - **Production-shaped backend.** Job leases make stale workers stop. A self-healing heartbeat, atomic SQL budgets (per-client, daily, model), refunds for non-existent transactions, and structured logs that never contain secrets.
-- **Strictly typed and tested.** Frozen Pydantic models, mypy strict, 60 backend tests on SQLite and PostgreSQL in CI, frontend unit tests, Playwright browser tests at four viewports, and a Docker smoke test.
+- **Strictly typed and tested.** Frozen Pydantic models, mypy strict, 66 backend tests on SQLite and PostgreSQL in CI, frontend unit tests, Playwright browser tests at four viewports, and a Docker smoke test.
 
 ## Networks
 

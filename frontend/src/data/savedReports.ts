@@ -1,45 +1,10 @@
 import approvalFixture from "../../e2e/fixtures/exposure-report.json";
-import type { Report, TraceStep, Transaction } from "../types/report";
+import type { Report, Transaction } from "../types/report";
 
 export type SavedExampleId = "approval" | "ethereum" | "monad";
 
 const approval = structuredClone(approvalFixture) as unknown as Report;
 approval.id = "saved-approval";
-
-const savedTrace: TraceStep[] = [
-  {
-    actor: "planner",
-    name: "load_recorded_transaction",
-    detail: "Loaded the recorded transaction evidence.",
-    status: "ok",
-    duration_ms: 12,
-    claim_ids: [],
-  },
-  {
-    actor: "tool",
-    name: "decode_transaction",
-    detail: "Decoded the call and receipt from the saved chain response.",
-    status: "ok",
-    duration_ms: 28,
-    claim_ids: [],
-  },
-  {
-    actor: "validator",
-    name: "validate_evidence",
-    detail: "Validated that every displayed fact exists in the recording.",
-    status: "ok",
-    duration_ms: 9,
-    claim_ids: [],
-  },
-  {
-    actor: "reporter",
-    name: "build_report",
-    detail: "Built this offline-safe report from deterministic evidence.",
-    status: "ok",
-    duration_ms: 14,
-    claim_ids: [],
-  },
-];
 
 function recordedReport(
   id: Exclude<SavedExampleId, "approval">,
@@ -86,10 +51,11 @@ function recordedReport(
       "No historical risk rule fired in the evidence bundled with this recorded example.",
   };
   report.interpretation = {
-    status: "complete",
+    status: "offline replay",
     model: null,
-    author: "baseline",
-    reason: null,
+    author: null,
+    reason:
+      "Offline replay of recorded evidence. The agent did not run, so this report has no agent trace.",
     result: {
       summary: [
         {
@@ -110,9 +76,9 @@ function recordedReport(
       actions: [],
     },
     investigation: null,
-    trace: savedTrace,
+    trace: [],
     llm_calls: 0,
-    duration_ms: savedTrace.reduce((total, step) => total + step.duration_ms, 0),
+    duration_ms: 0,
   };
   return report;
 }
@@ -166,4 +132,3 @@ export function isSavedExampleId(value: string): value is SavedExampleId {
 export function getSavedReport(id: string): Report | null {
   return isSavedExampleId(id) ? reports[id] : null;
 }
-

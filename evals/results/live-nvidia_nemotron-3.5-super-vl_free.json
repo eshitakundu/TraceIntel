@@ -1,0 +1,110 @@
+{
+  "model": "nvidia/nemotron-3.5-super-vl:free",
+  "ran_at": "2026-10-28T22:24:46+00:00",
+  "baseline": {
+    "advice_accuracy": 1.0,
+    "grounded_rate": 1.0,
+    "model_authored_rate": 0.0,
+    "repairs": 0,
+    "llm_calls": 0,
+    "median_seconds": 0.0
+  },
+  "model_summary": {
+    "advice_accuracy": 0.875,
+    "grounded_rate": 1.0,
+    "model_authored_rate": 0.0,
+    "repairs": 0,
+    "llm_calls": 7,
+    "median_seconds": 44.9
+  },
+  "cases": [
+    {
+      "scenario": "spender upgraded after the approval",
+      "author": "baseline",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 1,
+      "seconds": 36.8,
+      "reason": "Model unavailable: the model's answer did not match the required format (GenerationError). Showing rule-based advice."
+    },
+    {
+      "scenario": "spender is a key-held account",
+      "author": "baseline",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 1,
+      "seconds": 37.7,
+      "reason": "Model unavailable: the model's answer did not match the required format (GenerationError). Showing rule-based advice."
+    },
+    {
+      "scenario": "single key controls spender upgrades",
+      "author": "baseline",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 1,
+      "seconds": 25.2,
+      "reason": "Model unavailable: the model's answer did not match the required format (GenerationError). Showing rule-based advice."
+    },
+    {
+      "scenario": "recognised router, unchanged, finite allowance",
+      "author": "baseline",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 1,
+      "seconds": 44.9,
+      "reason": "Model unavailable: the model did not answer in time (TimeoutError). Showing rule-based advice."
+    },
+    {
+      "scenario": "unrecognised contract, unchanged, finite allowance",
+      "author": "baseline",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 1,
+      "seconds": 30.0,
+      "reason": "Model unavailable: the model's answer did not match the required format (GenerationError). Showing rule-based advice."
+    },
+    {
+      "scenario": "recognised protocol, allowance raised to unlimited since",
+      "author": "baseline",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 1,
+      "seconds": 51.6,
+      "reason": "Model unavailable: the model's answer did not match the required format (GenerationError). Showing rule-based advice."
+    },
+    {
+      "scenario": "allowance already revoked",
+      "author": "baseline",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 0,
+      "seconds": 50.5,
+      "reason": "Model unavailable: the model did not answer in time (TimeoutError). Showing rule-based advice."
+    },
+    {
+      "scenario": "approval-block state pruned by the provider",
+      "author": "baseline",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 1,
+      "seconds": 68.2,
+      "reason": "Model unavailable: the model did not answer in time (TimeoutError). Showing rule-based advice."
+    }
+  ]
+}
