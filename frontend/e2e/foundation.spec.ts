@@ -41,8 +41,8 @@ test("shows a real API failure and allows retry", async ({ page }) => {
   for (let attempt = 0; attempt < 8; attempt++) {
     await page.clock.runFor(16000);
   }
-  await expect(page.getByText("API unavailable")).toBeVisible();
+  await expect(page.getByText("Recorded demo available")).toBeVisible();
   await page.unroute("**/api/v1/ready");
-  await page.getByRole("button", { name: "Retry connection" }).click();
+  await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(page.getByText("Live analysis ready")).toBeVisible();
 });
