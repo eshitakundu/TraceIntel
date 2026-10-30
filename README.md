@@ -119,3 +119,7 @@ cd frontend && npx playwright install chromium && npm run test:e2e
 - EIP-1967 proxies only; UUPS upgrade authority inside implementations is reported as undetermined.
 - ERC-4337 smart-account approvals appear as "other contracts", because their transactions are sent by bundlers.
 - Risk scores and recommendations describe evidence. They are not safety ratings.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
