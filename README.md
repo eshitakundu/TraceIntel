@@ -1,10 +1,12 @@
 # TraceIntel
 
-**Can a contract you approved still take your tokens, has it changed since you said yes, and should you revoke it?**
+**What changed after you approved it?** TraceIntel reconstructs an old token approval, compares it with live on-chain state, and recommends whether to revoke it.
 
-[Live app](https://traceintel.eshita.dev) · [Recorded walkthrough](https://drive.google.com/file/d/1-5eEX6gudDaP5FLFxx9WotcHQ9CJlThD/view) · [How the agent works](docs/agents.md) · [Evaluations](evals/README.md) · [Architecture](docs/architecture.md)
+[Live app](https://traceintel.eshita.dev) · [1:44 walkthrough](https://drive.google.com/file/d/1-5eEX6gudDaP5FLFxx9WotcHQ9CJlThD/view) · [Methodology](https://traceintel.eshita.dev/methodology) · [Architecture](https://traceintel.eshita.dev/architecture) · [API docs](https://traceintel.eshita.dev/docs) · [How the agent works](docs/agents.md) · [Evaluations](evals/README.md)
 
 ![A TraceIntel report: the agent's briefing and recommended action, then the historical approval beside today's allowance](docs/screenshots/exposure-dashboard.png)
+
+**Try it without a wallet:** open the [live app](https://traceintel.eshita.dev) and pick one of the three recorded examples (two Ethereum transactions and one Monad transaction), or paste any transaction hash. Analysis is read-only and needs no wallet connection.
 
 ## Why it exists
 
