@@ -103,6 +103,8 @@ Without `OPENROUTER_API_KEY`, the rule-based baseline produces the investigation
 
 ## Testing
 
+CI runs **101 tests** on every push: 66 backend (pytest), 20 frontend (Vitest) and 15 end-to-end browser tests (Playwright), plus the 24 evaluation cases.
+
 ```sh
 make check        # lint, types, unit tests, build
 make evaluate     # 24 offline evaluation cases
