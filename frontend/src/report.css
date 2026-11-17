@@ -875,7 +875,7 @@
 .trace-step {
   position: relative;
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) auto;
+  grid-template-columns: 68px minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 12px;
   padding: 8px 0 8px 2px;
@@ -892,6 +892,7 @@
   font: 500 10.5px var(--font-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
   color: var(--ink-2);
   background: rgb(255 255 255 / 0.05);
 }
@@ -969,7 +970,7 @@
     font-size: 15.5px;
   }
   .trace-step {
-    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-columns: 66px minmax(0, 1fr);
   }
   .trace-meta {
     grid-column: 2;
