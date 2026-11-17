@@ -2,7 +2,7 @@
 
 **What changed after you approved it?** TraceIntel reconstructs an old token approval, compares it with live on-chain state, and recommends whether to revoke it.
 
-[Live app](https://traceintel.eshita.dev) · [1:44 walkthrough](https://drive.google.com/file/d/1-5eEX6gudDaP5FLFxx9WotcHQ9CJlThD/view) · [Methodology](https://traceintel.eshita.dev/methodology) · [Architecture](https://traceintel.eshita.dev/architecture) · [API docs](https://traceintel.eshita.dev/docs) · [How the agent works](docs/agents.md) · [Evaluations](evals/README.md)
+[Live app](https://traceintel.eshita.dev) · [1:33 walkthrough](https://drive.google.com/file/d/1-5eEX6gudDaP5FLFxx9WotcHQ9CJlThD/view) · [Methodology](https://traceintel.eshita.dev/methodology) · [Architecture](https://traceintel.eshita.dev/architecture) · [API docs](https://traceintel.eshita.dev/docs) · [How the agent works](docs/agents.md) · [Evaluations](evals/README.md)
 
 ![A TraceIntel report: the agent's briefing and recommended action, then the historical approval beside today's allowance](docs/screenshots/exposure-dashboard.png)
 
