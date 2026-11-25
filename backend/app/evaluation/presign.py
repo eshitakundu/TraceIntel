@@ -414,7 +414,11 @@ async def run_check(
             payload,
             explain=explain,
             llm=llm,
-            settings=Settings(openrouter_api_key=SecretStr("")),
+            settings=Settings(
+                llm_provider="openrouter",
+                openrouter_api_key=SecretStr(""),
+                nvidia_api_key=SecretStr(""),
+            ),
         )
 
 

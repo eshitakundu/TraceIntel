@@ -61,7 +61,7 @@ class AnalysisService:
             raise CapacityError("Analysis queue is full. Please retry later.")
         day = datetime.now(UTC).strftime("%Y-%m-%d")
         config_id = hashlib.sha256(
-            f"{self.settings.openrouter_model}:{bool(self.settings.openrouter_api_key.get_secret_value())}:{self.settings.traces_enabled}:{bool(self.settings.explorer_api_key.get_secret_value())}".encode()
+            f"{self.settings.llm_route}:{bool(self.settings.llm_api_key)}:{self.settings.traces_enabled}:{bool(self.settings.explorer_api_key.get_secret_value())}".encode()
         ).hexdigest()[:12]
         snapshot_bucket = int(datetime.now(UTC).timestamp()) // 300
         key = (
@@ -239,13 +239,13 @@ class AnalysisService:
             tag={"blockHash": snapshot, "requireCanonical": True} if snapshot else "latest",
         )
         use_model = False
-        if self.settings.openrouter_api_key.get_secret_value() and self.settings.openrouter_model:
+        if self.settings.llm_enabled:
             day = datetime.now(UTC).strftime("%Y-%m-%d")
             use_model = await self.repository.reserve_budget(
                 f"llm:{day}", self.settings.daily_llm_analyses
             )
         interpretation = await interpret(catalog, ctx, self.settings, use_model)
-        if not use_model and self.settings.openrouter_api_key.get_secret_value():
+        if not use_model and self.settings.llm_api_key:
             interpretation = interpretation.model_copy(
                 update={"reason": "Daily model budget reached. Showing rule-based advice."}
             )

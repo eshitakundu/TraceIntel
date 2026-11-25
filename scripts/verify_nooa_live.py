@@ -68,12 +68,15 @@ def summarise(rows: list[dict[str, object]]) -> dict[str, object]:
 
 async def evaluate() -> dict[str, object]:
     settings = Settings()
-    if not settings.openrouter_api_key.get_secret_value() or not settings.openrouter_model:
-        raise SystemExit("Set OPENROUTER_API_KEY and OPENROUTER_MODEL to run the live evaluation.")
+    if not settings.llm_enabled:
+        raise SystemExit(
+            "Set OPENROUTER_API_KEY and OPENROUTER_MODEL, or LLM_PROVIDER=nvidia_nim with "
+            "NVIDIA_API_KEY and NVIDIA_MODEL, to run the live evaluation."
+        )
     baseline = [await run(s, settings, use_model=False) for s in SCENARIOS]
     model = [await run(s, settings, use_model=True) for s in SCENARIOS]
     return {
-        "model": settings.openrouter_model,
+        "model": settings.llm_route,
         "ran_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "baseline": summarise(baseline),
         "model_summary": summarise(model),

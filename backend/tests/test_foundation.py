@@ -39,3 +39,20 @@ def test_public_chain_registry_preserves_both_supported_networks() -> None:
             "monad": 143,
         }
         assert all("rpc_url" not in chain for chain in payload)
+
+
+def test_llm_provider_switches_key_model_and_route() -> None:
+    openrouter = Settings(
+        _env_file=None,
+        llm_provider="openrouter",
+        openrouter_api_key="or-key",
+        openrouter_model="openrouter/auto",
+        nvidia_api_key="nv-key",
+        nvidia_model="meta/llama-3.3-70b-instruct",
+    )
+    assert openrouter.llm_route == "openrouter/openrouter/auto"
+    assert openrouter.llm_api_key == "or-key" and openrouter.llm_enabled
+    nim = openrouter.model_copy(update={"llm_provider": "nvidia_nim"})
+    assert nim.llm_route == "nvidia_nim/meta/llama-3.3-70b-instruct"
+    assert nim.llm_api_key == "nv-key" and nim.llm_model == "meta/llama-3.3-70b-instruct"
+    assert not nim.model_copy(update={"nvidia_model": ""}).llm_enabled

@@ -51,7 +51,7 @@ async def explain_verdict(
     llm: Any = None,
 ) -> Explanation:
     settings = settings or Settings()
-    owned = llm is None and bool(settings.openrouter_api_key.get_secret_value())
+    owned = llm is None and bool(settings.llm_api_key)
     reason: str | None = None
     try:
         if owned:
@@ -72,7 +72,7 @@ async def explain_verdict(
                     selection = validate_draft(draft, catalog)
                     return Explanation(
                         author="model",
-                        model=settings.openrouter_model or getattr(llm, "model", None),
+                        model=settings.llm_model or getattr(llm, "model", None),
                         summary=selection.summary,
                         findings=selection.important_findings,
                         uncertainties=selection.uncertainties,

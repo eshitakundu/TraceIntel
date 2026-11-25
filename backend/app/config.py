@@ -26,6 +26,21 @@ class Settings(BaseSettings):
     openrouter_model: str = Field(
         default="", validation_alias=AliasChoices("OPENROUTER_MODEL", "TRACEINTEL_OPENROUTER_MODEL")
     )
+    # Which hosted model API to use. OpenRouter stays the default; "nvidia_nim" uses NVIDIA's
+    # API catalog (build.nvidia.com) through LiteLLM's nvidia_nim provider.
+    llm_provider: Literal["openrouter", "nvidia_nim"] = Field(
+        default="openrouter",
+        validation_alias=AliasChoices("LLM_PROVIDER", "TRACEINTEL_LLM_PROVIDER"),
+    )
+    nvidia_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices(
+            "NVIDIA_API_KEY", "NVIDIA_NIM_API_KEY", "TRACEINTEL_NVIDIA_API_KEY"
+        ),
+    )
+    nvidia_model: str = Field(
+        default="", validation_alias=AliasChoices("NVIDIA_MODEL", "TRACEINTEL_NVIDIA_MODEL")
+    )
     rpc_timeout_seconds: float = Field(default=15, gt=0, le=60)
 
     explorer_api_key: SecretStr = SecretStr("")
@@ -36,6 +51,24 @@ class Settings(BaseSettings):
     daily_llm_analyses: int = Field(default=20, ge=0, le=1000)
 
     proxy_token: SecretStr = SecretStr("")
+
+    @property
+    def llm_model(self) -> str:
+        return self.nvidia_model if self.llm_provider == "nvidia_nim" else self.openrouter_model
+
+    @property
+    def llm_api_key(self) -> str:
+        key = self.nvidia_api_key if self.llm_provider == "nvidia_nim" else self.openrouter_api_key
+        return key.get_secret_value()
+
+    @property
+    def llm_enabled(self) -> bool:
+        return bool(self.llm_api_key and self.llm_model)
+
+    @property
+    def llm_route(self) -> str:
+        """The LiteLLM model string, for example "nvidia_nim/meta/llama-3.3-70b-instruct"."""
+        return f"{self.llm_provider}/{self.llm_model}"
 
     @model_validator(mode="after")
     def production_requirements(self) -> Self:

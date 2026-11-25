@@ -10,15 +10,22 @@ import pytest
 
 @pytest.fixture(scope="session", autouse=True)
 def migrated_test_database() -> Iterator[None]:
-    provider_keys = (
-        "OPENROUTER_API_KEY",
-        "OPENROUTER_MODEL",
-        "TRACEINTEL_OPENROUTER_API_KEY",
-        "TRACEINTEL_OPENROUTER_MODEL",
-    )
-    provider_values = {key: os.environ.get(key) for key in provider_keys}
-    for key in provider_keys:
-        os.environ[key] = ""
+    # Tests never reach a real model, whatever .env holds: environment variables win over it.
+    test_values = {
+        "OPENROUTER_API_KEY": "",
+        "OPENROUTER_MODEL": "",
+        "TRACEINTEL_OPENROUTER_API_KEY": "",
+        "TRACEINTEL_OPENROUTER_MODEL": "",
+        "LLM_PROVIDER": "openrouter",
+        "TRACEINTEL_LLM_PROVIDER": "openrouter",
+        "NVIDIA_API_KEY": "",
+        "NVIDIA_NIM_API_KEY": "",
+        "TRACEINTEL_NVIDIA_API_KEY": "",
+        "NVIDIA_MODEL": "",
+        "TRACEINTEL_NVIDIA_MODEL": "",
+    }
+    provider_values = {key: os.environ.get(key) for key in test_values}
+    os.environ.update(test_values)
     with tempfile.TemporaryDirectory(prefix="traceintel-tests-") as directory:
         key = "TRACEINTEL_DATABASE_URL"
         previous = os.environ.get(key)

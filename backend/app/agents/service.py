@@ -60,8 +60,8 @@ def is_format_failure(exc: BaseException) -> bool:
 
 def model_client(settings: Settings) -> Any:
     return get_llm_client(
-        "openrouter/" + settings.openrouter_model,
-        api_key=settings.openrouter_api_key.get_secret_value(),
+        settings.llm_route,
+        api_key=settings.llm_api_key,
         timeout=LLM_CALL_TIMEOUT,
         num_retries=0,
         retry_config=RetryConfig(max_retries=0, rate_limit_extra_retries=0),
@@ -87,7 +87,7 @@ async def interpret(
             except Exception as exc:
                 reason = describe_failure(exc)
                 llm = None
-        model_name = (settings.openrouter_model or getattr(llm, "model", None)) if llm else None
+        model_name = (settings.llm_model or getattr(llm, "model", None)) if llm else None
 
         # A model plan only adds value when there is something to prioritise.
         planner: Planner = BaselinePlanner()
