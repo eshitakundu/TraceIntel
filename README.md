@@ -1,6 +1,6 @@
 # TraceIntel
 
-**What changed after you approved it?** TraceIntel reconstructs an old token approval, compares it with live on-chain state, and recommends whether to revoke it.
+**What changed after you approved it?** TraceIntel reconstructs an old token approval, compares it with live on-chain state, and recommends whether to revoke it. **And before you sign:** an MCP tool that AI agents call to get *allow / warn / block* on a transaction or permit signature, backed by on-chain evidence.
 
 [Live app](https://traceintel.eshita.dev) · [1:33 walkthrough](https://drive.google.com/file/d/1-5eEX6gudDaP5FLFxx9WotcHQ9CJlThD/view) · [Methodology](https://traceintel.eshita.dev/methodology) · [Architecture](https://traceintel.eshita.dev/architecture) · [API docs](https://traceintel.eshita.dev/docs) · [How the agent works](docs/agents.md) · [Evaluations](evals/README.md)
 
@@ -22,6 +22,92 @@ Paste an Ethereum or Monad transaction hash. TraceIntel:
 4. **Advises** per permission (*consider revoking*, *verify the spender* or *check who can upgrade it*), with every sentence linked to the on-chain evidence behind it.
 
 It is read-only and needs no wallet connection.
+
+## Pre-sign check for AI agents (MCP)
+
+The same evidence pipeline also works *before* anything is signed. An agent with a wallet asks TraceIntel whether a transaction or signature it is about to sign hands out spending power, and to whom. The answer is **allow**, **warn** or **block**, with the reasons and the on-chain evidence behind each one. It runs as an MCP server, is read-only, and never signs or sends anything.
+
+**What it catches.** ERC-20 `approve`, `increaseAllowance` and `decreaseAllowance`, Permit2 `approve`, NFT `setApprovalForAll`, and signatures that grant spending without a transaction: EIP-2612 `Permit` and Permit2 `PermitSingle`, `PermitBatch` and `PermitTransferFrom`. Many wallet drains never send a transaction, which is why signatures are covered.
+
+**How it decides.** It decodes the payload, then reads the owner's balance, current allowance and the spender at one pinned and revalidated block, using the same read-only tools as the agent (`spender_profile`, `upgrade_control`, `known_spender`). Fixed rules turn those facts into a verdict. For example: a spender held by a private key → block; an unlimited grant to a proxy that one key can upgrade → block; a signature for a different chain → block; an unknown spender or an unlimited amount → warn. The model is never involved in the verdict.
+
+**Fails closed.** A failed read, a block that changes mid-check, unknown calldata (such as a `multicall`) or unknown typed data gives *warn: couldn't verify*, never *allow*.
+
+**Fast by default.** A check takes about 1.5 s on mainnet with no model call, since the calling agent is already a model. With `explain: true`, a model selects claim IDs to explain the verdict. It goes through the same grounding validator, with the same rule-based fallback, and cannot change the verdict. Full design and rules: [docs/presign.md](docs/presign.md).
+
+### Run it
+
+```sh
+uv sync
+uv run python scripts/presign_mcp.py    # MCP over stdio; RPC URLs come from .env
+```
+
+The pre-sign check doesn't need NOOA, so this also runs natively on Windows. Only `explain: true` needs Linux or macOS. Elsewhere it falls back to the rule-based explanation.
+
+**Claude Code:**
+
+```sh
+claude mcp add traceintel -- uv --directory /path/to/TraceIntel run python scripts/presign_mcp.py
+```
+
+**Claude Desktop** (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "traceintel": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/TraceIntel", "run", "python", "scripts/presign_mcp.py"]
+    }
+  }
+}
+```
+
+### Tools
+
+| Tool | Input |
+| --- | --- |
+| `check_approval_before_signing` | `chain` (`ethereum` or `monad`), `tx` = `{from, to, data, value}`, optional `explain` |
+| `check_signature_before_signing` | `chain`, `owner` (the signer), `typed_data` (EIP-712), optional `explain` |
+
+### Example
+
+An unlimited USDC `approve` to an address with no contract code, from a public exchange wallet, checked on Ethereum mainnet. The calldata is `approve(0x…dEaD, 2^256-1)`:
+
+```json
+{"chain": "ethereum",
+ "tx": {"from": "0x28C6c06298d514Db089934071355E5743bf21d60",
+        "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "data": "0x095ea7b3000000000000000000000000000000000000000000000000000000000000deadffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}}
+```
+
+Response (trimmed):
+
+```json
+{
+  "verdict": "block",
+  "headline": "BLOCK: Spender 0x0000…dead is controlled by a private key, not fixed contract code: whoever holds that key could move the tokens at any time.",
+  "reasons": [
+    {"rule": "SPENDER_IS_KEY", "severity": "block", "claim_ids": ["p0", "p0:spender"]},
+    {"rule": "UNKNOWN_SPENDER", "severity": "warn", "claim_ids": ["p0", "p0:known"]},
+    {"rule": "UNLIMITED_AMOUNT", "severity": "warn", "claim_ids": ["p0", "p0:reach", "p0:known"]}
+  ],
+  "claims": [
+    {"id": "p0", "text": "This transaction would set 0x28c6…1d60's allowance for spender 0x0000…dead to unlimited USDC (now: 0 USDC).",
+     "evidence_ids": ["input", "presign:state:p0"]},
+    {"id": "p0:reach", "text": "0x28c6…1d60 holds 52,363.119552 USDC at the checked block, so 0x0000…dead could move all of it, and any USDC received later.",
+     "evidence_ids": ["presign:state:p0"]},
+    {"id": "p0:spender", "text": "Spender 0x0000…dead has no contract code: it is an externally owned account, so whoever holds its private key can move the approved tokens.",
+     "evidence_ids": ["presign:agent:p0:spender"]}
+  ],
+  "coverage_gaps": [],
+  "block": {"number": 26492501, "hash": "0x954e…3a92"},
+  "duration_ms": 1467,
+  "note": "Read-only check. Nothing was signed or sent."
+}
+```
+
+Each `evidence_ids` entry points to an item in the full response's `evidence` list, which holds the raw RPC queries and results.
 
 ## How the AI works, and why it cannot make things up
 
@@ -49,7 +135,7 @@ Built on [NOOA](docs/nooa.md) (NVIDIA's agent framework) with OpenRouter models.
 
 ## Evidence that it works
 
-`make evaluate` runs **24 offline cases in CI**: historical rules, approval ownership on a real transaction, six exposure transitions, **eight labelled agent scenarios** (upgraded spender, key-held spender, single-key upgrades, recognised router, raised-to-unlimited, revoked, pruned history…) and **five adversarial guardrail cases** in which the model itself is scripted to misbehave. `scripts/verify_nooa_live.py` scores a real model against the rule-based baseline on the same scenarios. [Details](evals/README.md).
+`make evaluate` runs **35 offline cases in CI**: historical rules, approval ownership on a real transaction, six exposure transitions, **eight labelled agent scenarios** (upgraded spender, key-held spender, single-key upgrades, recognised router, raised-to-unlimited, revoked, pruned history…) and **five adversarial guardrail cases** in which the model itself is scripted to misbehave, plus **eleven pre-sign cases** (unlimited grant to a proxy one key controls, recognised router, unreadable spender, key-held spender, wrong-chain permit, blanket NFT approval, unknown multicall, revoke, chain head moving mid-check, RPC down, and prompt injection through token and signature names). `scripts/verify_nooa_live.py` scores a real model against the rule-based baseline on the same scenarios. [Details](evals/README.md).
 
 ### Live model vs baseline (28 Oct 2026, free-tier OpenRouter key)
 
@@ -72,7 +158,7 @@ What this shows:
 
 - **Correct under real chain conditions.** Reads are pinned to block hashes (EIP-1898) and revalidated, and reorgs invalidate state and cached reports. It falls back to labelled current state when providers prune history, recognises EIP-7702 delegated accounts and UNI-style uint96 "infinite" approvals, and keeps exact uint256 strings with no floats.
 - **Production-shaped backend.** Job leases make stale workers stop. A self-healing heartbeat, atomic SQL budgets (per-client, daily, model), refunds for non-existent transactions, and structured logs that never contain secrets.
-- **Strictly typed and tested.** Frozen Pydantic models, mypy strict, 66 backend tests on SQLite and PostgreSQL in CI, frontend unit tests, Playwright browser tests at four viewports, and a Docker smoke test.
+- **Strictly typed and tested.** Frozen Pydantic models, mypy strict, 95 backend tests on SQLite and PostgreSQL in CI, frontend unit tests, Playwright browser tests at four viewports, and a Docker smoke test.
 
 ## Networks
 
@@ -82,7 +168,7 @@ Ethereum and Monad share one EVM pipeline. Ethereum is where most approval risk 
 
 | Layer | Technology |
 | --- | --- |
-| Agent | NOOA `PredictStrategy`, OpenRouter, typed tool calls, grounding validator |
+| Agent | NOOA `PredictStrategy`, OpenRouter, typed tool calls, grounding validator, MCP server (Python SDK, stdio) |
 | Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy, Alembic |
 | On-chain | EVM JSON-RPC, ABI and event decoding, ERC-20/721, EIP-1967, EIP-1898, EIP-7702 |
 | Frontend | React 19, TypeScript, Vite |
@@ -103,11 +189,11 @@ Without `OPENROUTER_API_KEY`, the rule-based baseline produces the investigation
 
 ## Testing
 
-CI runs **101 tests** on every push: 66 backend (pytest), 20 frontend (Vitest) and 15 end-to-end browser tests (Playwright), plus the 24 evaluation cases.
+CI runs **130 tests** on every push: 95 backend (pytest), 20 frontend (Vitest) and 15 end-to-end browser tests (Playwright), plus the 35 evaluation cases.
 
 ```sh
 make check        # lint, types, unit tests, build
-make evaluate     # 24 offline evaluation cases
+make evaluate     # 35 offline evaluation cases
 cd frontend && npx playwright install chromium && npm run test:e2e
 ```
 
