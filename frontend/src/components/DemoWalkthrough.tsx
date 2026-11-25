@@ -10,7 +10,7 @@ export default function DemoWalkthrough() {
       aria-labelledby="walkthrough-title"
     >
       <div className="walkthrough-copy">
-        <span className="walkthrough-label">Walkthrough · 1:33</span>
+        <span className="walkthrough-label">Walkthrough · 1:56</span>
         <h2 id="walkthrough-title">
           Watch a permission
           <br />

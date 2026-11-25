@@ -128,7 +128,7 @@ export default function Home() {
           </p>
           <div className="hero-actions">
             <a className="button" href="#walkthrough">
-              Watch the 1:33 walkthrough
+              Watch the 1:56 walkthrough
             </a>
             <a className="hero-text-link" href="#analyze">
               Run a transaction
