@@ -140,6 +140,12 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def write_results(out: dict[str, Any], name: str) -> Path:
+    path = Path(__file__).resolve().parents[1] / "evals" / "results" / name
+    path.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    return path
+
+
 async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--approvals", type=int, default=60)
@@ -163,9 +169,7 @@ async def main() -> None:
         "summary": summarise(rows),
         "cases": rows,
     }
-    name = args.out or f"presign-live-{out['date']}.json"
-    path = Path(__file__).resolve().parents[1] / "evals" / "results" / name
-    path.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    path = write_results(out, args.out or f"presign-live-{out['date']}.json")
     print(json.dumps(out["summary"], indent=1))
     print(f"{len(rows)} transactions from blocks {first}-{last} -> {path.name}")
 
