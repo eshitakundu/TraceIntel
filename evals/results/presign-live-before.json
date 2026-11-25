@@ -1,0 +1,2262 @@
+{
+ "date": "2026-11-25",
+ "chain": "ethereum",
+ "blocks": [
+  26494216,
+  26494223
+ ],
+ "note": "Mined transactions, each checked against the chain head after it was mined.",
+ "summary": {
+  "verdicts": {
+   "warn": 81,
+   "block": 7,
+   "allow": 12
+  },
+  "by_group": {
+   "approval": {
+    "warn": 41,
+    "block": 7,
+    "allow": 12
+   },
+   "batch": {
+    "warn": 40
+   }
+  },
+  "rules": {
+   "UNRECOGNISED_PAYLOAD": 40,
+   "UNKNOWN_SPENDER": 36,
+   "UNLIMITED_AMOUNT": 13,
+   "NFT_OPERATOR_UNKNOWN": 6,
+   "REDUCES_EXPOSURE": 6,
+   "UPGRADEABLE_SPENDER": 2,
+   "SPENDER_IS_KEY": 1
+  },
+  "batches_fully_decoded": 0
+ },
+ "cases": [
+  {
+   "hash": "0x740514c842e149bc1f24f7b6d2fdfff33a67bd4d8a6cc7ca2cd70df5b461811d",
+   "block": 26494223,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x015c477a4e2881c4b3bb8999f59ee4a04e812344",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0xae05cd22df81871bc7cc2a04becfb516bfe332c8"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UPGRADEABLE_SPENDER",
+    "UNKNOWN_SPENDER",
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "Spender 0xae05\u202632c8 is upgradeable and its upgrade authority is not determined.",
+    "Spender 0xae05\u202632c8 is not a recognised protocol contract. Confirm it is the contract you meant to use.",
+    "The grant to 0xae05\u202632c8 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x92b2f45c57bdc8506e513749fbf23d5693d871354e498d846ca1e43c085ca009",
+   "block": 26494223,
+   "group": "approval",
+   "function": "setApprovalForAll(address,bool)",
+   "to": "0x505ae8250403def367023333677385173b1945dd",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "nft_operator"
+   ],
+   "spenders": [
+    "0x000000000000f10286d9c1c5d4635a25070572b6"
+   ],
+   "verdict": "block",
+   "rules": [
+    "NFT_OPERATOR_UNKNOWN"
+   ],
+   "reasons": [
+    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xe215fb71c8cc992335928b6357c13d21e9bafe9b83bb1bb238958bc98f38ea6f",
+   "block": 26494223,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x5f0c8b31e076fdd9e93d0c8c2f3f26d1a5971ca0b661f291ce77f7136c77743a",
+   "block": 26494223,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x97ccdbea4632140639ad5ea9b944aa034eb15fd4"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x97cc\u20265fd4 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x2a287f9602e2d853a28af2c2878442f56445f4793c5f6dda7805e878cf6d814b",
+   "block": 26494223,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x394546c8dcdb81d41870c122118833fbc78aaf17"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x3945\u2026af17 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xd54516bb26c7ce48a62d3456c775a464973d829515d30302bd9b6d5c1950b617",
+   "block": 26494223,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x4c82d1fbfe28c977cbb58d8c7ff8fcf9f70a2cca",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xda2bbc1aa601848425a022a0c97215bf8e1b787111a4c598ac3a28ecc5aec726",
+   "block": 26494223,
+   "group": "batch",
+   "function": "multicall(uint256,bytes[])",
+   "to": "0x5597278e3baa59d53e256db5cbabc9b491499ce5",
+   "decoded": "unrecognised",
+   "note": "Function 0x5ae401dc is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x5ae401dc is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x6602fa5f82414cd4c4acb8c2254c2ea8d4e2203676ae1f7f4887ee7c80ee405e",
+   "block": 26494223,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x6c3ea9036406852006290770bedfcaba0e23a0e8",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0xc13e21b648a5ee794902342038ff3adab66be987"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UPGRADEABLE_SPENDER",
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0xc13e\u2026e987 is upgradeable and its upgrade authority is not determined.",
+    "Spender 0xc13e\u2026e987 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x325fe35a949b0db9180771e45dc5620d355ed4b7ea6aaa6fd1cf421851eb3b54",
+   "block": 26494223,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x63529cf433e6affd258bff76be42824a54e7bcbc7470c66fa924a0269f65ca8e",
+   "block": 26494223,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4cd00e387622c35bddb9b4c962c136462338bc31"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4cd0\u2026bc31 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x7072beb1164c278fd15f69b93997cb5988c0a9f208bb5f7d26ab806f98b113fb",
+   "block": 26494223,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x01791f726b4103694969820be083196cc7c045ff",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x000000000022d473030f116ddee9f6b43ac78ba3"
+   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0xa3853d5066a37ad8b8879727717247e98514235908e2183cd79be224704eeea1",
+   "block": 26494222,
+   "group": "approval",
+   "function": "setApprovalForAll(address,bool)",
+   "to": "0x7183209867489e1047f3a7c23ea1aed9c4e236e8",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "nft_operator"
+   ],
+   "spenders": [
+    "0x000000000000f10286d9c1c5d4635a25070572b6"
+   ],
+   "verdict": "block",
+   "rules": [
+    "NFT_OPERATOR_UNKNOWN"
+   ],
+   "reasons": [
+    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xb2d5b2c0e149a90bf3fda589bad151f270809f2f3bc3da3b5fdf120b6cb11cf1",
+   "block": 26494222,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x90c496dea71307da373ea6fbca54b24bf5025de3"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER",
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "Spender 0x90c4\u20265de3 is not a recognised protocol contract. Confirm it is the contract you meant to use.",
+    "The grant to 0x90c4\u20265de3 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x9b8c3f82233f7dff5cc4a393b3df081ed81dc7bf7c334ee625d46c6d11483b1d",
+   "block": 26494222,
+   "group": "batch",
+   "function": "execute(bytes32,bytes)",
+   "to": "0x25c2cf621c93d07c6ffd2b664c44059dbcdc4383",
+   "decoded": "unrecognised",
+   "note": "Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x7db669504cb6b9e7c355556f6bca7ca4bf0a1040ba7bf3dbb0fb0998d4ffe4a0",
+   "block": 26494222,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x8b829fcd672bf106d6b2c42ab9860ff68dc2cd0a42f32698c1fb77bb01976152",
+   "block": 26494222,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x69460570c93f9de5e2edbc3052bf10125f0ca22d"
+   ],
+   "verdict": "allow",
+   "rules": [
+    "REDUCES_EXPOSURE"
+   ],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0x51c1336489f007af63de45e38680e6984e8a8801d80ef6129e646b0441c63fbf",
+   "block": 26494222,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x69460570c93f9de5e2edbc3052bf10125f0ca22d"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x6946\u2026a22d is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xac1de4af996bf84412d928fa4353e6d75c9cacee89c17a8ddf85bbd7a11467e3",
+   "block": 26494222,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xe7a81d5cc22712a257df0cd662b83b72224320089cd6a3109a74cb9435eef0b9",
+   "block": 26494222,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x160a8a73059d54f68d77ac1626c08425ec2ec0e0",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x000000000022d473030f116ddee9f6b43ac78ba3"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "The grant to 0x0000\u20268ba3 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xecdfb96a330ce9d694c11e56064d91fee707540145df5e82c39ac4dbaf41ce43",
+   "block": 26494222,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xfd6806f5bc61e33d58f5cd95149be926e3890a262d91239f2d01630ddcfd5ad7",
+   "block": 26494222,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x3f5591c8e15169d4271b135a3dbe1db5c10718202feb14a8ea3904b0b51feb72",
+   "block": 26494222,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x41b1dd1d582a460c84860176c1feb2e30ba0c411b6c9a0d48b0d4e34fe48570e",
+   "block": 26494222,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x1e0049783f008a0085193e00003d00cd54003c71"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "The grant to 0x1e00\u20263c71 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x94867e68b3ca20a04f0189042a7528d0844e6f66789db25a148b8f1c04d1e9af",
+   "block": 26494222,
+   "group": "batch",
+   "function": "multicall(bytes[])",
+   "to": "0x000000000000fb114709235f1ccbffb925f600e4",
+   "decoded": "unrecognised",
+   "note": "Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xe02af05df6191eab9aef3169c886edd574ca7b92c1e8c23ab6c2026c3bf6b1a8",
+   "block": 26494222,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x855f36e355334d198fc0774373c060fb0dd11014",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x7a250d5630b4cf539739df2c5dacb4c659f2488d"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "The grant to 0x7a25\u2026488d is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xc66a7c081a5bc3919beb1e79f83710bdfcd8b279d8cd0a05a3c95dc71a6c04ac",
+   "block": 26494221,
+   "group": "batch",
+   "function": "execute(bytes32,bytes)",
+   "to": "0xb7f29693d8185393fb0b93edfb717e28da1d7860",
+   "decoded": "unrecognised",
+   "note": "Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x18eac00fdf733dd926d24a6005344ac2ed1db3a5fdd32e224938e54a6383d49a",
+   "block": 26494221,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xc0f0a16c0542c5dd0f26e550ef2738f49bc24904093892f72d92dafd5613a072",
+   "block": 26494221,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x6982508145454ce325ddbe47a25d4ec3d2311933",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x700e0841ce0892969d2f9cf523c6298b3ef056a6"
+   ],
+   "verdict": "block",
+   "rules": [
+    "SPENDER_IS_KEY",
+    "UNKNOWN_SPENDER",
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "Spender 0x700e\u202656a6 is controlled by a private key, not fixed contract code: whoever holds that key could move the tokens at any time.",
+    "Spender 0x700e\u202656a6 is not a recognised protocol contract. Confirm it is the contract you meant to use.",
+    "The grant to 0x700e\u202656a6 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x42300f848a0f9d81e2ad9d53d7c71ba06b9f4903ef486e910649b2a4ac832d03",
+   "block": 26494221,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x5567954cd026cebfe486062cb75848e0f1c12e58"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x5567\u20262e58 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xf7f1b80898d4cdfc26150f8a4767cd0666ee2a3cff1c5359fa63e804bfe542c8",
+   "block": 26494221,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xfde940f103938c947df9fdb669b3a69062424db540739e9d0dbd0f7f4660506e",
+   "block": 26494221,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x6b84b68c0601fd58896ae2144782286ff3e0c43f",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x000000000022d473030f116ddee9f6b43ac78ba3"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "The grant to 0x0000\u20268ba3 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x2213238b6a5e9c22fb72ebcd54edc624b6565c51092cdb1f7b5c92c58cdc93a5",
+   "block": 26494221,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x8a96c92ba4cd4d740c52a702b7b0d62f13e5bcc270f7793b48ab095cddc23d59",
+   "block": 26494221,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x3532802501d9d10455845abe217e9cdc846cf9a7fc0d75693ced1a05c2375d23",
+   "block": 26494221,
+   "group": "batch",
+   "function": "execute(bytes32,bytes)",
+   "to": "0xd8c0f946c55245017ca17338b5ecbcead7f55a5a",
+   "decoded": "unrecognised",
+   "note": "Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xa525c28f7c2e8905e814df1eb14b3829cde0205f2f472097dabbf4b148b26caf",
+   "block": 26494221,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xaa7a9ca87d3694b5755f213b5d04094b8d0f0a6f",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45"
+   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0x6001d75db34c9eb3cb7e067d1ab14a71a0b84ee441c43e8e4f12f912f458631c",
+   "block": 26494220,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x0439e60f02a8900a951603950d8d4527f400c3f1"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x0439\u2026c3f1 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xcb62ba77ee67184844fa7a6efaa8df9bda6b2a054b1fd01ad6be54dfda62ee4b",
+   "block": 26494220,
+   "group": "approval",
+   "function": "setApprovalForAll(address,bool)",
+   "to": "0x9366ffb1d46ae96c6e483b86ce538a51ece11e3c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "nft_operator"
+   ],
+   "spenders": [
+    "0x000000000000f10286d9c1c5d4635a25070572b6"
+   ],
+   "verdict": "block",
+   "rules": [
+    "NFT_OPERATOR_UNKNOWN"
+   ],
+   "reasons": [
+    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x871c72bd1ea1213bebc9d86504cf48554d5ae720cf61b2c6f4031d4b4a72293e",
+   "block": 26494220,
+   "group": "batch",
+   "function": "multicall(bytes[])",
+   "to": "0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e",
+   "decoded": "unrecognised",
+   "note": "Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x3c4159a310392f36fcd7643d51013b1b1a52d1d8bcd90c3d3163b30c7ad613cd",
+   "block": 26494220,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xc4441c2be5d8fa8126822b9929ca0b81ea0de38e",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x337685fdab40d39bd02028545a4ffa7d287cc3e2"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x3376\u2026c3e2 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xe5add1db00729b1fa9192c6004fe9d548fd27bab118c6ac223e9efbf4f8cc4b1",
+   "block": 26494220,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x6e5970dbd6fc7eb1f29c6d2edf2bc4c36124c0c1",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x6131b5fae19ea4f9d964eac0408e4408b66337b5"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER",
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "Spender 0x6131\u202637b5 is not a recognised protocol contract. Confirm it is the contract you meant to use.",
+    "The grant to 0x6131\u202637b5 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xce2a2f87cc01776249f765e83e4d0d51fee64cff7a3e510509789f33a8178995",
+   "block": 26494220,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x69460570c93f9de5e2edbc3052bf10125f0ca22d"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x6946\u2026a22d is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x1a3da7d69ad316cf24f10aebf1f9c7b64c4919ed924ca425aebba601fcc28c88",
+   "block": 26494220,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x56072c95faa701256059aa122697b133aded9279",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0xce01c90de7fd1bcfa39e237fe6d8d9f569e8a6a3"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0xce01\u2026a6a3 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xb1995b547edd6bfabab89327d2b0c52fe70fbf5b1e2960c6c1dba8aae2264d90",
+   "block": 26494220,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x000000000022d473030f116ddee9f6b43ac78ba3"
+   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0x1f212a26cb784012565d42b1c8d41751e7e87c62430611546236c983fd0d3f35",
+   "block": 26494220,
+   "group": "batch",
+   "function": "multicall(uint256,bytes[])",
+   "to": "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45",
+   "decoded": "unrecognised",
+   "note": "Function 0x5ae401dc is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x5ae401dc is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x741cbca39e79e1759a1a5818366a2eb5d1d4441ecc43587a0f5ff61d0fcd8711",
+   "block": 26494220,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x3153f15a18c45d129c1bf2baf8d7d01624a77078d84a0e730ac394fb093c13a0",
+   "block": 26494220,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xb7fecd03456d6b9d8672943a9059d30ec287e3d1fa5c55b871de54ce9194d850",
+   "block": 26494220,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x09b66e61135a6e68d9c73b362a2c71c199078c75bbfbeee433f18e582b97351b",
+   "block": 26494220,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x1ea65437fd22b01f72afb1b6bec135b6f0ba9fea7ceefd6f4ac4921b3f859d2c",
+   "block": 26494220,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xead66ce97a35e50abd4835e0c61259749ef99cfb0d95cbe1060b9c954bcba110",
+   "block": 26494220,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x180b63eff6f577b6e516bd9a39cc196f4f8488c21e8659dfd03210e1d9ee66cd",
+   "block": 26494220,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0xba412d8b36bfd7d65dff5cc0df7b3c29a7eae687"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER",
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "Spender 0xba41\u2026e687 is not a recognised protocol contract. Confirm it is the contract you meant to use.",
+    "The grant to 0xba41\u2026e687 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x67d0961b10de2c89c7946b05ca6b4be03e59d4d665ec575f61d298cd868b0acc",
+   "block": 26494220,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x1231deb6f5749ef6ce6943a275a1d3e7486f4eae"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x1231\u20264eae is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x43da99dbdd6d4dfac63cacda7a4fcf267b977bae118b186bc6f6e7318a7effa4",
+   "block": 26494220,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4cd00e387622c35bddb9b4c962c136462338bc31"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4cd0\u2026bc31 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xf90a892173e351043b92b34b7c0d25b093d8c7750e387da3c602e2c1b2574894",
+   "block": 26494220,
+   "group": "batch",
+   "function": "multicall(bytes[])",
+   "to": "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45",
+   "decoded": "unrecognised",
+   "note": "Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x9751c167eda71df0f2ccc8efefe1071fe197390eb044105af5f68398235e7d71",
+   "block": 26494220,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "The grant to 0x68b3\u2026fc45 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xe27803dab5727367255949322b74c45a9c8a094d91acdc44a018d1130ea8a342",
+   "block": 26494220,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x9f30507c264cc6eb5be35b18ff9ad7b4539aa920",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x888888888889758f76e7103c6cbf23abbf58f946"
+   ],
+   "verdict": "allow",
+   "rules": [
+    "REDUCES_EXPOSURE"
+   ],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0x0744cbe0b34994122f12b17ce531d5c6cdfaed3854bfd2756deaa10b91554622",
+   "block": 26494220,
+   "group": "batch",
+   "function": "execute(bytes32,bytes)",
+   "to": "0x65548c787998ac15e901988a93daaa263a124668",
+   "decoded": "unrecognised",
+   "note": "Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x4bc1531f714919fe3561fc5dcd7ab5a68498d570cda142dae894cccc6fdf0e77",
+   "block": 26494220,
+   "group": "batch",
+   "function": "execute(bytes32,bytes)",
+   "to": "0xbdde4f40d1bc50cf15a8f010f7ecce71e76738f2",
+   "decoded": "unrecognised",
+   "note": "Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xb99a58bd83c6d19d4bc2d8508df944c8495b911c3195f51a44538df9bcf7bf50",
+   "block": 26494220,
+   "group": "batch",
+   "function": "execute(bytes32,bytes)",
+   "to": "0x2bef6ee0cbd06a27008bd6e6f99fe49df7dc3195",
+   "decoded": "unrecognised",
+   "note": "Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x1cd460d9c9a6ed1d3275f11e4096511deb653379ca409212eb15491af9cc0e66",
+   "block": 26494220,
+   "group": "batch",
+   "function": "execute(bytes32,bytes)",
+   "to": "0xb10b6f1f4e72e902f3648016a1b5df817aa2daa9",
+   "decoded": "unrecognised",
+   "note": "Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xce961e6b60d8af134e5e23e78e51bc846384923a074b509f1f4187e682773961",
+   "block": 26494220,
+   "group": "batch",
+   "function": "execute(bytes32,bytes)",
+   "to": "0x2fba13c9326b1781f80ad076f116505e48fc34d9",
+   "decoded": "unrecognised",
+   "note": "Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xe9ae5c53 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x31e5c25b144a2c90963e2c5660d651ce648ea3412befd3aeee654d0c8c89e64b",
+   "block": 26494220,
+   "group": "batch",
+   "function": "multicall(uint256,bytes[])",
+   "to": "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45",
+   "decoded": "unrecognised",
+   "note": "Function 0x5ae401dc is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x5ae401dc is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x77976f854602154ff3e5d3cc5f428950a17b85a3770e911ea74fa65739e9bbcf",
+   "block": 26494219,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x9b9e1563ad2bd5e04d4769ca1472399c91df05b83e0503d6245ecdb38bd2f272",
+   "block": 26494219,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x1f748c76de468e9d11bd340fa9d5cbadf315dfb0"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER",
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "Spender 0x1f74\u2026dfb0 is not a recognised protocol contract. Confirm it is the contract you meant to use.",
+    "The grant to 0x1f74\u2026dfb0 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xfa7f3b38290e5c41e5d24872b3a3a89057b358ea3afaa02b942e6f0504a4e395",
+   "block": 26494219,
+   "group": "approval",
+   "function": "setApprovalForAll(address,bool)",
+   "to": "0x8bfd77f287b789d26f01ec81e966a6465ccb4283",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "nft_operator"
+   ],
+   "spenders": [
+    "0x000000000000f10286d9c1c5d4635a25070572b6"
+   ],
+   "verdict": "block",
+   "rules": [
+    "NFT_OPERATOR_UNKNOWN"
+   ],
+   "reasons": [
+    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x89f6aa5076065118284802d16c858e3b41f9a9d6c4271c093dacfacf2f189312",
+   "block": 26494219,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x111111125421ca6dc452d289314280a0f8842a65"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER",
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "Spender 0x1111\u20262a65 is not a recognised protocol contract. Confirm it is the contract you meant to use.",
+    "The grant to 0x1111\u20262a65 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xa1b95d4d4ebed7418d856ef5de4e3bce4566118b57006306cbafac37d685f2cf",
+   "block": 26494218,
+   "group": "approval",
+   "function": "setApprovalForAll(address,bool)",
+   "to": "0x5df89cc648a6bd179bb4db68c7cbf8533e8d796e",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "nft_operator"
+   ],
+   "spenders": [
+    "0x000000000000f10286d9c1c5d4635a25070572b6"
+   ],
+   "verdict": "block",
+   "rules": [
+    "NFT_OPERATOR_UNKNOWN"
+   ],
+   "reasons": [
+    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x5587afba30dae803c4c6365157d2bc828fc496a1585fbb5df4302572687fe24c",
+   "block": 26494218,
+   "group": "approval",
+   "function": "setApprovalForAll(address,bool)",
+   "to": "0x7d33b7863c4157b65f6e1c734a0bc7e1dc24df26",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "nft_operator"
+   ],
+   "spenders": [
+    "0x000000000000f10286d9c1c5d4635a25070572b6"
+   ],
+   "verdict": "block",
+   "rules": [
+    "NFT_OPERATOR_UNKNOWN"
+   ],
+   "reasons": [
+    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xb1c32dde15466d4bbefee9847e34a52a169b5489eb8a220cdbbed60c02ffb076",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x3708375aacc15de02b678a5395efee5735c68587995dc4e543870641663524b2",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x0f2f53a82866623574e93943fc9c40e97f3677c6dfca0bf6daec19aa20968844",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x3353427535ceb0a5867139e90ee9d29bfadb45a1d1cf8610e331a8197440564a",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x192dce9f6cbe018cad9831417dc20ac334c236268e769031d5a6a98a64cd2357",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x1b7c05fd6ff9fc60b1c303d7853b549e2a77dbd76dfaabd3b7731e542f543164",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x0bf2b45b9bcadd4bdcb7fdc3e3d664911e0c901632c695dd8c0bedc7ffe5005d",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xca84a0685226ddbeb039302839e48d5cb24f54615586ac2ae44a776d86fe01a0",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x24ac32eb6e8f3d3215c830c16c3631f5b26e38f3986343e48b99b08879fc0572",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x595e39839f2d59672009bca1c9ac2824addedeafc8eb6ccb482717f9ca2b39cb",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x15c76c71a66c21ac71886ec02ed252cd6cd61344bd4a7acb51e9c779d7a30a76",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x05ba53ecc8b1cfb00155a93937dd2abefddfcf2c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x4313c378cc91ea583c91387b9216e2c03096b27f"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x4313\u2026b27f is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xd5b076fed3c91ff544deee475034638dbeac21ae9f80c052fb72bb14e3ea2f88",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x889edc2edab5f40e902b864ad4d7ade8e412f9b1"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x889e\u2026f9b1 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x690cbd119f444f0d3207a2737692af5f7d6be123991d191c647418b67772b4f8",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0xbc1d9760bd6ca468ca9fb5ff2cfbeac35d86c973"
+   ],
+   "verdict": "allow",
+   "rules": [
+    "REDUCES_EXPOSURE"
+   ],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0xca12149b3d633a91b679ee353edd94d2120fd62e1e234dd212809671f1ee4904",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0xbc1d9760bd6ca468ca9fb5ff2cfbeac35d86c973"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0xbc1d\u2026c973 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x302150c8a82d8328ae22daee24dd5f93ae47a30083eff39418fa1e260e32a156",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xd42f23aa6d2b886524006c6aecb1ad80579e736c",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x000000000000c9b3e2c3ec88b1b4c0cd853f4321"
+   ],
+   "verdict": "allow",
+   "rules": [
+    "REDUCES_EXPOSURE"
+   ],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0x28e714bce5c9bde9f3c5f24d94196430cef78ce48bc1ed13a4dc1fb6ff2c3c8e",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x2875133b91909eb332fcf1e8664d0965a5fc5ca9",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x000000000000c9b3e2c3ec88b1b4c0cd853f4321"
+   ],
+   "verdict": "allow",
+   "rules": [
+    "REDUCES_EXPOSURE"
+   ],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0x0f87c792aaf8b8be2d071fe54bb79fb96edfca0c053c440250cb3856585eef14",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xdff281cecd0b54e7fdefb062c70de6f3336c2818",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x000000000022d473030f116ddee9f6b43ac78ba3"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNLIMITED_AMOUNT"
+   ],
+   "reasons": [
+    "The grant to 0x0000\u20268ba3 is unlimited. A finite amount covers a single trade."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x366dc2006c096d6bba5daac8e866685fad049a0b03329eaf416b2a9524348b0b",
+   "block": 26494218,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xa7637211a4137a86ce6cc908d13739dfb8e50f7c5201cd4246ac4d9b4c789b75",
+   "block": 26494218,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x9159f0816a40960002da7edc76df6687d2bee3030f3fff4fd814d93eac8e3e08",
+   "block": 26494218,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xa7936cf47c23fef7876269b2e4b416173cf149c68f2027714669098b581db16c",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x604dd02d620633ae427888d41bfd15e38483736e"
+   ],
+   "verdict": "allow",
+   "rules": [
+    "REDUCES_EXPOSURE"
+   ],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0xa22b04231eaec3e9df6d439fe5b46c89174b35c4b3ac0a434237fdaecf925566",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x6a000f20005980200259b80c5102003040001068"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x6a00\u20261068 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xc869740db1ea9ca1c663348a40a7d861a9886d219592be247801659b2e00ff3f",
+   "block": 26494218,
+   "group": "batch",
+   "function": "multicall(bytes[])",
+   "to": "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45",
+   "decoded": "unrecognised",
+   "note": "Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x6591ef007e32f2a5b04f2c3d9cf55bd8c6096458a9f743a397300c469b230467",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x90551c1795392094fe6d29b758eccd233cfaa260"
+   ],
+   "verdict": "warn",
+   "rules": [
+    "UNKNOWN_SPENDER"
+   ],
+   "reasons": [
+    "Spender 0x9055\u2026a260 is not a recognised protocol contract. Confirm it is the contract you meant to use."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x4e1ec57fbcd5b3575d93300513e0305e39bf4fc84e687a58a1725a3627db7a37",
+   "block": 26494218,
+   "group": "batch",
+   "function": "multicall(bytes[])",
+   "to": "0x4c09bc47db288f998b33cd63bcc1b6ddcce13f33",
+   "decoded": "unrecognised",
+   "note": "Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x91079b0dc044d223359a8310729100239ccd2c9702dced223ba68f29f784c894",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x6985884c4392d348587b19cb9eaaf157f13271cd",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45"
+   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0xf47f91844d380c88eb9dbbf80f5502bb32009bca030839f9fc6b8abc72dabf0a",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x6985884c4392d348587b19cb9eaaf157f13271cd",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45"
+   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0xbe3b88749d0717e7a0bb02075ab400a00677401ba0866d64daa730e7a8f9ec21",
+   "block": 26494218,
+   "group": "approval",
+   "function": "approve(address,uint256)",
+   "to": "0x6985884c4392d348587b19cb9eaaf157f13271cd",
+   "decoded": "recognised",
+   "note": "",
+   "partial": false,
+   "kinds": [
+    "erc20_approve"
+   ],
+   "spenders": [
+    "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45"
+   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
+   "gaps": 0
+  },
+  {
+   "hash": "0xb8b64b1b78a4b75d1d340b9309f420731fa01996747c4e40ca7608494ad9a10a",
+   "block": 26494217,
+   "group": "batch",
+   "function": "multicall(bytes[])",
+   "to": "0xc36442b4a4522e871399cd717abdd847ab11fe88",
+   "decoded": "unrecognised",
+   "note": "Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0xac9650d8 is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x69d2c2329de518894dfc509d2ddc7780776673cb9cd11d698f07a57acdf73fa5",
+   "block": 26494216,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x23617e59a5925b2a4bf75d73ff6711cd0b29de85",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0x864b75c8b20559593fcd943f76106dfd9466d8be42f356a0bb70d0515412e23b",
+   "block": 26494216,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  },
+  {
+   "hash": "0xa26c245498c4133887569573d114b0150bbbfff36c45e7b9da8689199883be0d",
+   "block": 26494216,
+   "group": "batch",
+   "function": "execute(bytes,bytes[],uint256)",
+   "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+   "decoded": "unrecognised",
+   "note": "Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared.",
+   "partial": false,
+   "kinds": [],
+   "spenders": [],
+   "verdict": "warn",
+   "rules": [
+    "UNRECOGNISED_PAYLOAD"
+   ],
+   "reasons": [
+    "Could not verify: Function 0x3593564c is not a recognised approval call. It may still grant permissions (for example inside a multicall), so it cannot be cleared."
+   ],
+   "gaps": 0
+  }
+ ]
+}

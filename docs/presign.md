@@ -73,7 +73,7 @@ it. The verdict is the most severe reason. No reason means `allow`.
 - `COULD_NOT_VERIFY`: a read failed, the block moved, or the target has no code.
 - `UNRECOGNISED_PAYLOAD`: calldata or typed data that isn't a known approval format.
 - `UNKNOWN_SPENDER`: the spender is not in the published-contracts registry
-  (`backend/app/agents/spender_registry.json`: 29 Ethereum and 10 Monad contracts, each
+  (`backend/app/agents/spender_registry.json`: 45 Ethereum and 10 Monad contracts, each
   copied from the protocol's own docs or deployment files, linked in the evidence, and
   checked on-chain to have code).
 - `UNLIMITED_AMOUNT`: an unlimited grant, even to a known spender. A finite amount

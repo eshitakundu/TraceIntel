@@ -15,6 +15,8 @@ TOKEN = "0x" + "70" * 20
 KEY = "0x" + "e0" * 20
 ROUTER = "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45"  # Uniswap V3 SwapRouter02
 UNIVERSAL_ROUTER = "0x66a9893cc07d91d95644aedd05d03f95e1dba8af"
+ROUTER_1_2 = "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad"
+POSITION_MANAGER = "0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e"
 MAX = 2**256 - 1
 
 
@@ -122,9 +124,41 @@ def test_universal_router_swap_only_grants_nothing() -> None:
 
 
 def test_universal_router_unknown_command_and_lookalike_router() -> None:
-    assert decode(UNIVERSAL_ROUTER, universal_router(bytes([0x10]), [b""])).status == "unrecognised"
+    # 0x11 grants a V3 position NFT by permit: not inspected, so not cleared.
+    assert decode(UNIVERSAL_ROUTER, universal_router(bytes([0x11]), [b""])).status == "unrecognised"
+    # 0x40 is a third-party command; the 0x3f mask of old routers would misread it as 0x00.
+    assert decode(UNIVERSAL_ROUTER, universal_router(bytes([0x40]), [b""])).status == "unrecognised"
     lookalike = universal_router(bytes([0x0A]), [permit2_permit(KEY, 2**160 - 1)])
     assert decode(KEY, lookalike).status == "unrecognised"
+
+
+def test_router_v4_commands_depend_on_the_router_version() -> None:
+    # 0x10 is V4_SWAP on Universal Router 2.x but an NFT marketplace command on 1.x.
+    assert decode(UNIVERSAL_ROUTER, universal_router(bytes([0x10]), [b""])).status == "no_approval"
+    assert decode(ROUTER_1_2, universal_router(bytes([0x10]), [b""])).status == "unrecognised"
+
+
+def test_sub_plan_permits_are_found() -> None:
+    sub = encode(["bytes", "bytes[]"], [bytes([0x0A]), [permit2_permit(KEY, 10**18)]])
+    decoded = decode(UNIVERSAL_ROUTER, universal_router(bytes([0x21, 0x10]), [sub, b""]))
+    assert decoded.status == "recognised" and not decoded.partial
+    assert decoded.intents[0].spender == KEY
+
+
+def test_router_swaps_and_position_manager_permit() -> None:
+    swap = call(
+        "exactInputSingle((address,address,uint24,address,uint256,uint256,uint160))",
+        ["(address,address,uint24,address,uint256,uint256,uint160)"],
+        [(TOKEN, KEY, 500, OWNER, 10**18, 0, 0)],
+    )
+    assert decode(ROUTER, multicall(SELF_PERMIT, swap)).partial is False
+    forwarded = call(
+        "permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)",
+        ["address", "((address,uint160,uint48,uint48),address,uint256)", "bytes"],
+        [OWNER, ((TOKEN, 2**160 - 1, 1_800_000_000, 0), KEY, 1_800_000_000), b""],
+    )
+    (intent,) = decode(POSITION_MANAGER, multicall(forwarded)).intents
+    assert intent.kind == "permit2_permit" and intent.spender == KEY and intent.unlimited
 
 
 def account_batch(*calls: tuple[str, str]) -> str:

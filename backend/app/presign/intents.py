@@ -157,10 +157,15 @@ def _decode_call(owner: str, to: str, data: str, depth: int) -> Decoded:
             status="no_approval",
             note="Plain value transfer with no calldata; it grants no token permission.",
         )
-    if data[:10] in SELF_PERMITS:
+    if data[:10] in NO_GRANT:
+        name = NO_GRANT[data[:10]]
+        return _no_grant(name, f"{name} grants no token permission.")
+    if data[:10] in SELF_PERMITS or data[:10] in FORWARDED_PERMITS:
         try:
-            return _self_permit(owner, to, data)
-        except (DecodingError, ValueError, OverflowError) as exc:
+            if data[:10] in SELF_PERMITS:
+                return _self_permit(owner, to, data)
+            return _forwarded_permit(data)
+        except (DecodingError, ValueError, OverflowError, TypeError) as exc:
             return _unknown(f"The permit calldata is malformed ({type(exc).__name__}).")
     batch = _decode_batch(owner, to, data, depth)
     if batch is not None:
@@ -293,10 +298,14 @@ OPAQUE_BATCHES = {
         "tryAggregate(bool,(address,bytes)[])",
     )
 }
-# Universal Router commands (command byte & 0x3f). These codes mean the same thing in
-# every Universal Router version; any other code is reported as not inspected.
+# Universal Router commands (command byte & 0x7f), from Uniswap's Commands.sol. Codes up
+# to 0x0e mean the same thing in every Universal Router version; 0x10-0x14 changed meaning
+# (NFT marketplace commands in 1.x, Uniswap v4 in 2.x), so they are only read for 2.x
+# routers. Any other code is reported as not inspected.
+ROUTER_COMMAND_MASK = 0x7F
 ROUTER_PERMIT = 0x0A
 ROUTER_PERMIT_BATCH = 0x03
+ROUTER_SUB_PLAN = 0x21
 ROUTER_NO_GRANT = {
     0x00: "V3_SWAP_EXACT_IN",
     0x01: "V3_SWAP_EXACT_OUT",
@@ -304,6 +313,7 @@ ROUTER_NO_GRANT = {
     0x04: "SWEEP",
     0x05: "TRANSFER",
     0x06: "PAY_PORTION",
+    0x07: "PAY_PORTION_FULL_PRECISION",
     0x08: "V2_SWAP_EXACT_IN",
     0x09: "V2_SWAP_EXACT_OUT",
     0x0B: "WRAP_ETH",
@@ -311,15 +321,66 @@ ROUTER_NO_GRANT = {
     0x0D: "PERMIT2_TRANSFER_FROM_BATCH",
     0x0E: "BALANCE_CHECK_ERC20",
 }
+ROUTER_V2_NO_GRANT = {0x10: "V4_SWAP", 0x13: "V4_INITIALIZE_POOL"}
 PERMIT_DETAILS = "(address,uint160,uint48,uint48)"
 PERMIT_SINGLE = f"({PERMIT_DETAILS},address,uint256)"
 PERMIT_BATCH = f"({PERMIT_DETAILS}[],address,uint256)"
-UNIVERSAL_ROUTERS = frozenset(
-    entry["address"]
+UNIVERSAL_ROUTERS = {
+    entry["address"]: entry["name"]
     for entries in REGISTRY.values()
     for entry in entries
     if entry["name"].startswith("Uniswap Universal Router")
-)
+}
+
+
+def _router_v2(name: str) -> bool:
+    return "(v4)" in name or " 2." in name
+
+
+# Swap, liquidity and housekeeping calls on Uniswap routers and position managers. They
+# move tokens under permissions that already exist; none creates a token permission.
+NO_GRANT = {
+    selector(sig): sig.split("(")[0]
+    for sig in (
+        # SwapRouter02
+        "exactInputSingle((address,address,uint24,address,uint256,uint256,uint160))",
+        "exactInput((bytes,address,uint256,uint256))",
+        "exactOutputSingle((address,address,uint24,address,uint256,uint256,uint160))",
+        "exactOutput((bytes,address,uint256,uint256))",
+        "swapExactTokensForTokens(uint256,uint256,address[],address)",
+        "swapTokensForExactTokens(uint256,uint256,address[],address)",
+        # SwapRouter (v3, with deadline)
+        "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))",
+        "exactInput((bytes,address,uint256,uint256,uint256))",
+        "exactOutputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))",
+        "exactOutput((bytes,address,uint256,uint256,uint256))",
+        # Peripheral payments
+        "unwrapWETH9(uint256,address)",
+        "unwrapWETH9(uint256)",
+        "refundETH()",
+        "sweepToken(address,uint256,address)",
+        "sweepToken(address,uint256)",
+        "wrapETH(uint256)",
+        "pull(address,uint256)",
+        # V3 NonfungiblePositionManager
+        "mint((address,address,uint24,int24,int24,uint256,uint256,uint256,uint256,address,uint256))",
+        "increaseLiquidity((uint256,uint256,uint256,uint256,uint256,uint256))",
+        "decreaseLiquidity((uint256,uint128,uint256,uint256,uint256))",
+        "collect((uint256,address,uint128,uint128))",
+        "burn(uint256)",
+        "createAndInitializePoolIfNecessary(address,address,uint24,uint160)",
+        # V4 PositionManager
+        "modifyLiquidities(bytes,uint256)",
+        "modifyLiquiditiesWithoutUnlock(bytes,bytes[])",
+        "initializePool((address,address,uint24,int24,address),uint160)",
+    )
+}
+# Permit2Forwarder (V4 PositionManager, Universal Router 2.x): submits a signed Permit2
+# permit for `owner`, granting the spender named in the permit.
+FORWARDED_PERMITS = {
+    selector(f"permit(address,{PERMIT_SINGLE},bytes)"): PERMIT_SINGLE,
+    selector(f"permitBatch(address,{PERMIT_BATCH},bytes)"): PERMIT_BATCH,
+}
 
 
 def _unknown(note: str, function: str | None = None) -> Decoded:
@@ -402,36 +463,55 @@ def _permit2_intents(owner: str, details: list[Any], spender: str) -> list[Inten
     ]
 
 
-def _universal_router(owner: str, to: str, data: str) -> Decoded:
-    sig, types = ROUTER_EXECUTES[data[:10]]
-    commands, inputs = abi_decode(types, bytes.fromhex(data[10:]))[:2]
+def _router_commands(
+    owner: str, commands: bytes, inputs: list[bytes], v2: bool, depth: int
+) -> list[Decoded]:
     if len(commands) != len(inputs) or len(commands) > MAX_INNER_CALLS:
-        return _unknown("Universal Router commands and inputs do not line up.", sig)
+        return [_unknown("Universal Router commands and inputs do not line up.")]
     parts: list[Decoded] = []
     for raw, payload in zip(commands, inputs, strict=True):
-        command = raw & 0x3F
-        if command == ROUTER_PERMIT:
-            (details, spender, _deadline), _sig = abi_decode([PERMIT_SINGLE, "bytes"], payload)
-            intents = _permit2_intents(owner, [details], spender)
-        elif command == ROUTER_PERMIT_BATCH:
-            (details, spender, _deadline), _sig = abi_decode([PERMIT_BATCH, "bytes"], payload)
-            intents = _permit2_intents(owner, list(details), spender)
-        elif command in ROUTER_NO_GRANT:
-            parts.append(_no_grant(ROUTER_NO_GRANT[command], f"{ROUTER_NO_GRANT[command]}."))
-            continue
+        command = raw & ROUTER_COMMAND_MASK
+        if command in (ROUTER_PERMIT, ROUTER_PERMIT_BATCH):
+            permit_type = PERMIT_SINGLE if command == ROUTER_PERMIT else PERMIT_BATCH
+            (details, spender, _deadline), _sig = abi_decode([permit_type, "bytes"], payload)
+            items = [details] if command == ROUTER_PERMIT else list(details)
+            parts.append(_permit2_part(_permit2_intents(owner, items, spender)))
+        elif command in ROUTER_NO_GRANT or (v2 and command in ROUTER_V2_NO_GRANT):
+            name = ROUTER_NO_GRANT.get(command) or ROUTER_V2_NO_GRANT[command]
+            parts.append(_no_grant(name, f"{name}."))
+        elif command == ROUTER_SUB_PLAN and depth < MAX_DEPTH:
+            sub_commands, sub_inputs = abi_decode(["bytes", "bytes[]"], payload)
+            parts += _router_commands(owner, sub_commands, list(sub_inputs), v2, depth + 1)
         else:
             parts.append(_unknown(f"Universal Router command 0x{command:02x} is not inspected"))
-            continue
-        parts.append(
-            Decoded(
-                source="transaction",
-                status="recognised",
-                function="PERMIT2_PERMIT",
-                intents=tuple(intents[:MAX_INTENTS]),
-                truncated=len(intents) > MAX_INTENTS,
-            )
-        )
+    return parts
+
+
+def _permit2_part(intents: list[Intent]) -> Decoded:
+    return Decoded(
+        source="transaction",
+        status="recognised",
+        function="PERMIT2_PERMIT",
+        intents=tuple(intents[:MAX_INTENTS]),
+        truncated=len(intents) > MAX_INTENTS,
+    )
+
+
+def _universal_router(owner: str, to: str, data: str, depth: int) -> Decoded:
+    sig, types = ROUTER_EXECUTES[data[:10]]
+    commands, inputs = abi_decode(types, bytes.fromhex(data[10:]))[:2]
+    parts = _router_commands(
+        owner, commands, list(inputs), _router_v2(UNIVERSAL_ROUTERS[to]), depth
+    )
     return _merge(f"Universal Router {sig}", parts)
+
+
+def _forwarded_permit(data: str) -> Decoded:
+    signer, (details, spender, _deadline), _sig = abi_decode(
+        ["address", FORWARDED_PERMITS[data[:10]], "bytes"], bytes.fromhex(data[10:])
+    )
+    items = [details] if FORWARDED_PERMITS[data[:10]] == PERMIT_SINGLE else list(details)
+    return _permit2_part(_permit2_intents(signer.lower(), items, spender))
 
 
 def _account_batch(owner: str, data: str, depth: int) -> Decoded:
@@ -483,7 +563,7 @@ def _decode_batch(owner: str, to: str, data: str, depth: int) -> Decoded | None:
                     "Uniswap Universal Router; its commands are not inspected.",
                     ROUTER_EXECUTES[head][0],
                 )
-            return _universal_router(owner, to, data)
+            return _universal_router(owner, to, data, depth)
         if to != owner:
             return _unknown(
                 "execute(bytes32,bytes) sent to another account runs its calls as that "
