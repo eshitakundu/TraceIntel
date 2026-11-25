@@ -18,6 +18,7 @@ dependencies = [
   "eth-abi>=6.0.0",
   "eth-utils>=6.0.0",
   "eth-hash[pycryptodome]>=0.8.0",
+  "mcp>=1.20,<2",
 ]
 
 [dependency-groups]
@@ -43,5 +44,5 @@ packages = ["app"]
 
 [[tool.mypy.overrides]]
 # NOOA strategies implement these methods; their bodies are intentionally empty.
-module = ["app.agents.planner", "app.agents.reporter"]
+module = ["app.agents.planner", "app.agents.reporter", "app.presign.explain"]
 disable_error_code = ["empty-body"]

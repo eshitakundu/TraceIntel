@@ -7,6 +7,7 @@ from pathlib import Path
 from app.blockchain.decoder import decode_transaction
 from app.blockchain.event_decoder import APPROVAL
 from app.blockchain.exposure_analyzer import compare_permission
+from app.evaluation.presign import run_presign_cases
 from app.evaluation.scenarios import run_agent_cases
 from app.models.blockchain import RawTransaction
 from app.models.exposure import CurrentPermissionState, HistoricalPermission
@@ -122,6 +123,7 @@ def run_cases() -> list[dict[str, object]]:
             }
         )
     results += asyncio.run(run_agent_cases())
+    results += asyncio.run(run_presign_cases())
     return results
 
 

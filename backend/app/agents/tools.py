@@ -35,7 +35,14 @@ KNOWN_SPENDERS: dict[int, dict[str, str]] = {
         "0x1111111254eeb25477b68fb85ed929f73a960582": "1inch Aggregation Router v5",
         "0xdef1c0ded9bec7f1a1670819833240f027b25eff": "0x Exchange Proxy",
         "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb": "Morpho Blue",
+        "0x0000000000000068f116a894984e2db1123eb395": "OpenSea Seaport 1.6",
+        "0x1e0049783f008a0085193e00003d00cd54003c71": "OpenSea Conduit",
     }
+}
+# Recognised spenders that legitimately take blanket NFT approvals (setApprovalForAll).
+NFT_MARKETPLACES = {
+    "0x0000000000000068f116a894984e2db1123eb395",
+    "0x1e0049783f008a0085193e00003d00cd54003c71",
 }
 
 
@@ -50,6 +57,9 @@ class ToolContext:
     evidence: dict[str, Evidence]
     # Block tag for "now": pinned to the exposure snapshot when one exists.
     tag: Any = "latest"
+    # Compare the spender with its state at the approval block. Off for pre-sign checks,
+    # where no approval exists yet.
+    compare_history: bool = True
 
 
 @dataclass
@@ -126,6 +136,8 @@ async def spender_profile(ctx: ToolContext, pid: str) -> ToolResult:
     else:
         text = f"Spender {name} is a contract with no EIP-1967 upgrade slot set."
     result.claims.append(CitedClaim(id=f"{pid}:spender", text=text, evidence_ids=(eid,)))
+    if not ctx.compare_history:
+        return result
 
     record = _historical_record(ctx, spender)
     if record is None or record[0] is None:
