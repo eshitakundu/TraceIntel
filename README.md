@@ -27,13 +27,24 @@ It is read-only and needs no wallet connection.
 
 The same evidence pipeline also works *before* anything is signed. An agent with a wallet asks TraceIntel whether a transaction or signature it is about to sign hands out spending power, and to whom. The answer is **allow**, **warn** or **block**, with the reasons and the on-chain evidence behind each one. It runs as an MCP server, is read-only, and never signs or sends anything.
 
-**What it catches.** ERC-20 `approve`, `increaseAllowance` and `decreaseAllowance`, Permit2 `approve`, NFT `setApprovalForAll`, and signatures that grant spending without a transaction: EIP-2612 `Permit` and Permit2 `PermitSingle`, `PermitBatch` and `PermitTransferFrom`. Many wallet drains never send a transaction, which is why signatures are covered.
+**What it catches.** ERC-20 `approve`, `increaseAllowance` and `decreaseAllowance`, Permit2 `approve`, NFT `setApprovalForAll`, and signatures that grant spending without a transaction: EIP-2612 `Permit` and Permit2 `PermitSingle`, `PermitBatch` and `PermitTransferFrom`. Many wallet drains never send a transaction, which is why signatures are covered. It also looks inside batches: `multicall` (including Uniswap's `selfPermit`), Universal Router commands (Permit2 permits and sub-plans) and EIP-7702 batches sent from your own account.
 
-**How it decides.** It decodes the payload, then reads the owner's balance, current allowance and the spender at one pinned and revalidated block, using the same read-only tools as the agent (`spender_profile`, `upgrade_control`, `known_spender`). Fixed rules turn those facts into a verdict. For example: a spender held by a private key → block; an unlimited grant to a proxy that one key can upgrade → block; a signature for a different chain → block; an unknown spender or an unlimited amount → warn. The model is never involved in the verdict.
+**How it decides.** It decodes the payload, then reads the owner's balance, current allowance and the spender at one pinned and revalidated block, using the same read-only tools as the agent (`spender_profile`, `upgrade_control`, `known_spender`). Upgrade authority is traced through admins fixed in proxy code, beacons, Safe multisigs (a 1-of-N Safe counts as one key) and timelocks, and spenders are named from a registry of 56 published contracts on Ethereum and Monad, each linked to the protocol's own docs. Fixed rules turn those facts into a verdict. For example: a spender held by a private key → block; an unlimited grant to a proxy that one key can upgrade → block; a signature for a different chain → block; an unknown spender or an unlimited amount → warn. The model is never involved in the verdict.
 
-**Fails closed.** A failed read, a block that changes mid-check, unknown calldata (such as a `multicall`) or unknown typed data gives *warn: couldn't verify*, never *allow*.
+**Fails closed.** A failed read, a block that changes mid-check, unknown calldata (such as an unrecognised command inside a batch) or unknown typed data gives *warn: couldn't verify*, never *allow*.
 
 **Fast by default.** A check takes about 1.5 s on mainnet with no model call, since the calling agent is already a model. With `explain: true`, a model selects claim IDs to explain the verdict. It goes through the same grounding validator, with the same rule-based fallback, and cannot change the verdict. Full design and rules: [docs/presign.md](docs/presign.md).
+
+### On real traffic
+
+`scripts/presign_scoreboard.py` runs the check on the latest real Ethereum approvals and batches. On the same 100 mainnet transactions (blocks 26494216-26494223):
+
+| | allow | warn | block | batches fully decoded |
+| --- | --- | --- | --- | --- |
+| Before (first release) | 12 | 81 | 7 | 0 / 40 |
+| Now | **50** | **49** | **1** | **30 / 40** |
+
+The one block left is an unlimited approval to a private-key account. The six NFT approvals it used to block went to Harvest, a published tax-loss buyer that is now in the registry. Most remaining warnings are honest: a long tail of spenders no registry lists (27), unlimited amounts (18), and batches relayed into someone else's account (10). Results: [before](evals/results/presign-live-before.json), [now](evals/results/presign-live-after.json).
 
 ### Run it
 
@@ -135,7 +146,7 @@ Built on [NOOA](docs/nooa.md) (NVIDIA's agent framework) with OpenRouter models.
 
 ## Evidence that it works
 
-`make evaluate` runs **35 offline cases in CI**: historical rules, approval ownership on a real transaction, six exposure transitions, **eight labelled agent scenarios** (upgraded spender, key-held spender, single-key upgrades, recognised router, raised-to-unlimited, revoked, pruned history…) and **five adversarial guardrail cases** in which the model itself is scripted to misbehave, plus **eleven pre-sign cases** (unlimited grant to a proxy one key controls, recognised router, unreadable spender, key-held spender, wrong-chain permit, blanket NFT approval, unknown multicall, revoke, chain head moving mid-check, RPC down, and prompt injection through token and signature names). `scripts/verify_nooa_live.py` scores a real model against the rule-based baseline on the same scenarios. [Details](evals/README.md).
+`make evaluate` runs **41 offline cases in CI**: historical rules, approval ownership on a real transaction, six exposure transitions, **eight labelled agent scenarios** (upgraded spender, key-held spender, single-key upgrades, recognised router, raised-to-unlimited, revoked, pruned history…) and **five adversarial guardrail cases** in which the model itself is scripted to misbehave, plus **seventeen pre-sign cases** (unlimited grant to a proxy one key controls, the same through a 1-of-3 Safe, upgrades held by a timelock or by an admin fixed in proxy code, approvals hidden inside a multicall and an EIP-7702 batch, a Universal Router swap with a permit, recognised router, unreadable spender, key-held spender, wrong-chain permit, blanket NFT approval, unknown multicall, revoke, chain head moving mid-check, RPC down, and prompt injection through token and signature names). `scripts/verify_nooa_live.py` scores a real model against the rule-based baseline on the same scenarios. [Details](evals/README.md).
 
 ### Live model vs baseline (28 Oct 2026, free-tier OpenRouter key)
 
@@ -150,7 +161,7 @@ The same 8 labelled agent scenarios, with the on-chain world scripted so only th
 What this shows:
 
 - **The guardrails held every time.** No run produced an ungrounded claim, including when the model's advice was wrong.
-- **The model does not beat the baseline yet.** With free automatic routing it matched the label in 4 of 8 scenarios. That is why the baseline stays the benchmark and the fallback.
+- **The model does not beat the baseline yet.** With free automatic routing it matched the label in 4 of 8 scenarios. That is why the baseline stays the benchmark and the fallback. Why rules should keep deciding, and what the model is for: [docs/model-vs-baseline.md](docs/model-vs-baseline.md).
 - **Failures degrade safely.** The pinned free model broke the required format or timed out in every scenario, so the baseline wrote all 8 briefings. One planning timeout left an investigation incomplete, and that is the single miss.
 - **Limits.** 8 scenarios is a small sample, and `openrouter/auto` can route to different models from run to run.
 
@@ -158,7 +169,7 @@ What this shows:
 
 - **Correct under real chain conditions.** Reads are pinned to block hashes (EIP-1898) and revalidated, and reorgs invalidate state and cached reports. It falls back to labelled current state when providers prune history, recognises EIP-7702 delegated accounts and UNI-style uint96 "infinite" approvals, and keeps exact uint256 strings with no floats.
 - **Production-shaped backend.** Job leases make stale workers stop. A self-healing heartbeat, atomic SQL budgets (per-client, daily, model), refunds for non-existent transactions, and structured logs that never contain secrets.
-- **Strictly typed and tested.** Frozen Pydantic models, mypy strict, 95 backend tests on SQLite and PostgreSQL in CI, frontend unit tests, Playwright browser tests at four viewports, and a Docker smoke test.
+- **Strictly typed and tested.** Frozen Pydantic models, mypy strict, 120 backend tests on SQLite and PostgreSQL in CI, frontend unit tests, Playwright browser tests at four viewports, and a Docker smoke test.
 
 ## Networks
 
@@ -189,11 +200,11 @@ Without `OPENROUTER_API_KEY`, the rule-based baseline produces the investigation
 
 ## Testing
 
-CI runs **130 tests** on every push: 95 backend (pytest), 20 frontend (Vitest) and 15 end-to-end browser tests (Playwright), plus the 35 evaluation cases.
+CI runs **155 tests** on every push: 120 backend (pytest), 20 frontend (Vitest) and 15 end-to-end browser tests (Playwright), plus the 41 evaluation cases.
 
 ```sh
 make check        # lint, types, unit tests, build
-make evaluate     # 35 offline evaluation cases
+make evaluate     # 41 offline evaluation cases
 cd frontend && npx playwright install chromium && npm run test:e2e
 ```
 

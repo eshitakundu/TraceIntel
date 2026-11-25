@@ -9,14 +9,14 @@
  "summary": {
   "verdicts": {
    "warn": 49,
-   "block": 7,
-   "allow": 44
+   "allow": 50,
+   "block": 1
   },
   "by_group": {
    "approval": {
     "warn": 34,
-    "block": 7,
-    "allow": 19
+    "allow": 25,
+    "block": 1
    },
    "batch": {
     "allow": 25,
@@ -28,7 +28,6 @@
    "NOT_AN_APPROVAL": 25,
    "UNLIMITED_AMOUNT": 18,
    "UNRECOGNISED_PAYLOAD": 10,
-   "NFT_OPERATOR_UNKNOWN": 6,
    "REDUCES_EXPOSURE": 6,
    "LONG_LIVED": 4,
    "SPENDER_IS_KEY": 1
@@ -77,13 +76,9 @@
    "spenders": [
     "0x000000000000f10286d9c1c5d4635a25070572b6"
    ],
-   "verdict": "block",
-   "rules": [
-    "NFT_OPERATOR_UNKNOWN"
-   ],
-   "reasons": [
-    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
-   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
    "gaps": 0
   },
   {
@@ -289,13 +284,9 @@
    "spenders": [
     "0x000000000000f10286d9c1c5d4635a25070572b6"
    ],
-   "verdict": "block",
-   "rules": [
-    "NFT_OPERATOR_UNKNOWN"
-   ],
-   "reasons": [
-    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
-   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
    "gaps": 0
   },
   {
@@ -833,13 +824,9 @@
    "spenders": [
     "0x000000000000f10286d9c1c5d4635a25070572b6"
    ],
-   "verdict": "block",
-   "rules": [
-    "NFT_OPERATOR_UNKNOWN"
-   ],
-   "reasons": [
-    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
-   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
    "gaps": 0
   },
   {
@@ -1421,13 +1408,9 @@
    "spenders": [
     "0x000000000000f10286d9c1c5d4635a25070572b6"
    ],
-   "verdict": "block",
-   "rules": [
-    "NFT_OPERATOR_UNKNOWN"
-   ],
-   "reasons": [
-    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
-   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
    "gaps": 0
   },
   {
@@ -1469,13 +1452,9 @@
    "spenders": [
     "0x000000000000f10286d9c1c5d4635a25070572b6"
    ],
-   "verdict": "block",
-   "rules": [
-    "NFT_OPERATOR_UNKNOWN"
-   ],
-   "reasons": [
-    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
-   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
    "gaps": 0
   },
   {
@@ -1493,13 +1472,9 @@
    "spenders": [
     "0x000000000000f10286d9c1c5d4635a25070572b6"
    ],
-   "verdict": "block",
-   "rules": [
-    "NFT_OPERATOR_UNKNOWN"
-   ],
-   "reasons": [
-    "This hands 0x0000\u202672b6 every NFT in the collection, now and later, and it is not a recognised marketplace contract."
-   ],
+   "verdict": "allow",
+   "rules": [],
+   "reasons": [],
    "gaps": 0
   },
   {

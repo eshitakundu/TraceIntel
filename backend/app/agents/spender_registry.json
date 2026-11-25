@@ -30,6 +30,7 @@
     {"address": "0x0000000000000068f116a894984e2db1123eb395", "name": "OpenSea Seaport 1.6", "source": "https://github.com/ProjectOpenSea/seaport/blob/main/docs/Deployments.md", "nft_marketplace": true},
     {"address": "0x00000000000000adc04c56bf30ac9d3c0aaf14dc", "name": "OpenSea Seaport 1.5", "source": "https://github.com/ProjectOpenSea/seaport/blob/main/docs/Deployments.md", "nft_marketplace": true},
     {"address": "0x1e0049783f008a0085193e00003d00cd54003c71", "name": "OpenSea Conduit", "source": "https://support.opensea.io/en/articles/8867119-what-does-a-typed-signature-request-look-like", "nft_marketplace": true},
+    {"address": "0x000000000000f10286d9c1c5d4635a25070572b6", "name": "Harvest (NFT tax-loss buyer)", "source": "https://harvest.art/contracts", "nft_marketplace": true},
     {"address": "0x881d40237659c251811cec9c364ef91dc08d300c", "name": "MetaMask Swaps router", "source": "https://github.com/MetaMask/metamask-extension/blob/main/shared/constants/swaps.ts"},
     {"address": "0x0439e60f02a8900a951603950d8d4527f400c3f1", "name": "MetaMask Bridge", "source": "https://github.com/MetaMask/core/blob/main/packages/bridge-controller/src/constants/bridge.ts"},
     {"address": "0x6131b5fae19ea4f9d964eac0408e4408b66337b5", "name": "KyberSwap MetaAggregationRouterV2", "source": "https://docs.kyberswap.com/developer-guide/aggregator-api/contracts"},

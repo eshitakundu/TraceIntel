@@ -61,7 +61,8 @@ async def check_approval_before_signing(
     """Check an unsigned transaction before signing it.
 
     Detects whether it creates or changes a token permission (ERC-20 approve,
-    increaseAllowance, decreaseAllowance, Permit2 approve, NFT setApprovalForAll),
+    increaseAllowance, decreaseAllowance, Permit2 approve, NFT setApprovalForAll), also
+    inside multicalls, Universal Router commands and EIP-7702 batches from your own account,
     checks the spender on-chain, and returns verdict allow / warn / block with reasons,
     evidence IDs and coverage gaps. Fails closed: anything unreadable is a warn or block.
     """

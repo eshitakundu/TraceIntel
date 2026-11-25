@@ -23,13 +23,18 @@ def test_lookup_tables_follow_the_registry() -> None:
     assert len(KNOWN_SPENDERS[1]) >= 25 and len(KNOWN_SPENDERS[143]) >= 10
 
 
-def test_nft_marketplaces_are_only_seaport_and_its_conduit() -> None:
+def test_blanket_nft_operators_are_only_the_listed_ones() -> None:
     names = {
         entry["name"]
         for entries in REGISTRY.values()
         for entry in entries
         if entry["address"] in NFT_MARKETPLACES
     }
-    assert names == {"OpenSea Seaport 1.5", "OpenSea Seaport 1.6", "OpenSea Conduit"}
+    assert names == {
+        "OpenSea Seaport 1.5",
+        "OpenSea Seaport 1.6",
+        "OpenSea Conduit",
+        "Harvest (NFT tax-loss buyer)",
+    }
     # The conduit has no code on Monad, so it must not be listed there.
     assert "0x1e0049783f008a0085193e00003d00cd54003c71" not in KNOWN_SPENDERS[143]
