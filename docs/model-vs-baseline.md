@@ -8,18 +8,29 @@ what the model is still for.
 ## What the runs show
 
 `scripts/verify_nooa_live.py` runs the 8 labelled agent scenarios with a real model and
-with the baseline. The chain is scripted, so only the model varies. Latest runs
-(28 Oct 2026, free-tier key; details in the [README](../README.md#live-model-vs-baseline-28-oct-2026-free-tier-openrouter-key)):
+with the baseline. The chain is scripted, so only the model varies. Full table in the
+[README](../README.md#live-model-vs-baseline). The runs that matter here:
 
-| Writer | Correct advice | Grounded | Written by the model | Median time |
-| --- | --- | --- | --- | --- |
-| Rule-based baseline | 8 / 8 | 8 / 8 | n/a | under 0.1 s |
-| `openrouter/auto` | 4 / 8 | 8 / 8 | 8 / 8 | 24.9 s |
-| `nvidia/nemotron-3.5-super-vl:free` | 7 / 8 | 8 / 8 | 0 / 8 | 44.9 s |
+| Writer | Correct advice | Written by the model | Median time |
+| --- | --- | --- | --- |
+| Rule-based baseline | 8 / 8 | n/a | under 0.1 s |
+| NIM Nemotron 3.5 Super, thinking off | 7 / 8 | 7 / 8 | 29 s |
+| NIM Nemotron 3 Ultra, thinking off | 2 / 8 | 8 / 8 | 9 s |
+| NIM Nemotron 3.5 Super, thinking on | 5 / 8 | 0 / 8 | 40 s |
+| `openrouter/auto` | 4 / 8 | 8 / 8 | 25 s |
 
-When the model wrote the advice, it was wrong half the time but never ungrounded. When the
-pinned free model failed (bad format or a timeout), the baseline wrote the briefing, and
-the one miss came from a planning timeout that cut an investigation short.
+Every run was fully grounded: no briefing cited anything the tools hadn't verified.
+
+Two lessons:
+
+- **Reasoning models need reasoning off for this job.** The planner and reporter ask for a
+  small structured answer (a few tool calls, or a few claim IDs). With reasoning on, the
+  model spent the token budget thinking and the answer was cut off, so the format check
+  failed and the baseline took over every time. Switching it off (NIM's
+  `enable_thinking: false`) let Nemotron Super write 7 of 8 briefings.
+- **Grounded is not the same as right.** Nemotron Ultra cited real evidence in all 8
+  briefings and still gave the wrong advice in 6. The validator can prove a claim is
+  backed by evidence. It can't prove the advice drawn from it is wise.
 
 ## Why the baseline should keep deciding
 
@@ -28,10 +39,10 @@ the one miss came from a planning timeout that cut an investigation short.
    nothing to do. Rules that encode those facts are the ceiling on this test. A model can
    tie them, not beat them, and every gap between them is a mistake.
 2. **Mistakes don't cost the same.** "Keep" on a drainer loses money; "revoke" on a safe
-   router costs one transaction. A writer that is right 4 times in 8, even fully cited,
-   can't be the one that decides.
-3. **Speed and uptime.** The baseline answers in well under a second, offline. Free models
-   took 25 to 45 seconds and sometimes timed out or broke the output format.
+   router costs one transaction. A writer that cites real evidence every time and is still
+   right only 2 times in 8 (Nemotron Ultra) can't be the one that decides.
+3. **Speed and uptime.** The baseline answers in well under a second, offline. Hosted
+   models took 9 to 124 seconds per scenario, and some timed out on the free tier.
 4. **Same state, same answer.** An agent or an auditor needs the verdict to repeat for the
    same chain state. Sampling makes a model's verdict vary between runs.
 
@@ -61,10 +72,14 @@ scenarios are not.
 
 ## Rerun
 
+Put the provider settings in `.env` (git ignores it), then:
+
 ```sh
-OPENROUTER_API_KEY=... OPENROUTER_MODEL=<model id> \
-  PYTHONPATH=backend uv run python scripts/verify_nooa_live.py
+# .env: LLM_PROVIDER=nvidia_nim, NVIDIA_API_KEY=nvapi-..., NVIDIA_MODEL=<catalog id>
+#   or: OPENROUTER_API_KEY=..., OPENROUTER_MODEL=<model id>
+PYTHONPATH=backend uv run python scripts/verify_nooa_live.py
 ```
 
-Results are written to `evals/results/live-<model>.json`. The runs above are from 28 Oct
-2026. Rerun them before quoting the numbers for a different model.
+Results are written to `evals/results/live-<provider>_<model>.json`. The NIM runs are from
+26 Nov 2026 and the OpenRouter runs from 28 Oct 2026. Rerun them before quoting numbers
+for a different model.

@@ -56,3 +56,14 @@ def test_llm_provider_switches_key_model_and_route() -> None:
     assert nim.llm_route == "nvidia_nim/meta/llama-3.3-70b-instruct"
     assert nim.llm_api_key == "nv-key" and nim.llm_model == "meta/llama-3.3-70b-instruct"
     assert not nim.model_copy(update={"nvidia_model": ""}).llm_enabled
+
+
+def test_nim_requests_switch_thinking_off_unless_asked() -> None:
+    from app.agents.service import model_options
+
+    nim = Settings(_env_file=None, llm_provider="nvidia_nim")
+    assert model_options(nim) == {
+        "extra_body": {"chat_template_kwargs": {"enable_thinking": False}}
+    }
+    assert model_options(nim.model_copy(update={"llm_thinking": True})) == {}
+    assert model_options(Settings(_env_file=None, llm_provider="openrouter")) == {}

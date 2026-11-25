@@ -58,10 +58,19 @@ def is_format_failure(exc: BaseException) -> bool:
     return isinstance(exc, ValidationError) or type(exc).__name__ == "GenerationError"
 
 
+def model_options(settings: Settings) -> dict[str, Any]:
+    """Provider-specific request options."""
+    if settings.llm_provider == "nvidia_nim" and not settings.llm_thinking:
+        # NIM chat templates (Nemotron and others) switch reasoning off with this flag.
+        return {"extra_body": {"chat_template_kwargs": {"enable_thinking": False}}}
+    return {}
+
+
 def model_client(settings: Settings) -> Any:
     return get_llm_client(
         settings.llm_route,
         api_key=settings.llm_api_key,
+        **model_options(settings),
         timeout=LLM_CALL_TIMEOUT,
         num_retries=0,
         retry_config=RetryConfig(max_retries=0, rate_limit_extra_retries=0),

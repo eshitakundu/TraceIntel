@@ -44,8 +44,8 @@ The tools target the risk that matters after an approval: the approved contract 
 | Tool | Observes | Why it matters |
 | --- | --- | --- |
 | `spender_profile` | Whether the spender is a key-held account, an EIP-7702 delegated account, a contract or an EIP-1967 proxy now. Compares its bytecode and implementation with the state recorded at the approval block. | An upgraded proxy or changed code means the approval now trusts different logic. A key-held spender means whoever holds one key can move the tokens. |
-| `upgrade_control` | The EIP-1967 admin slot, whether that admin is a single key or a contract, and the admin's `owner()`. | One private key able to replace the spender's logic is a concentrated point of failure. |
-| `known_spender` | Whether the spender matches a published address of a widely used protocol (Permit2, Uniswap routers, Morpho Blue…). | Identity, not safety. The claim says so explicitly. |
+| `upgrade_control` | Who can replace the spender's logic: the EIP-1967 admin, the beacon, or an admin fixed in the proxy's code (proved by a caller-gated `admin()`), then up to 3 steps of key, Safe multisig (1-of-N counts as one key), timelock delay or `owner()`. | One private key able to replace the spender's logic is a concentrated point of failure. |
+| `known_spender` | Whether the spender matches one of 56 published protocol addresses on Ethereum and Monad, each linked in the evidence to the protocol's own docs (Permit2, Uniswap routers, Aave, Morpho Blue…). | Identity, not safety. The claim says so explicitly. |
 
 Reads are pinned to the same block hash as the exposure snapshot (EIP-1898, `requireCanonical`), so the whole report describes one consistent chain state. When the RPC provider has pruned approval-block state, "changed since approval" becomes an explicit, cited uncertainty, never a guess. The default Ethereum RPC serves archive state for this reason.
 
@@ -79,7 +79,7 @@ Every report stores the run: each plan, every requested call (accepted or reject
 - **Eight labelled scenarios** over the real recorded approval transaction, each with a scripted RPC world: upgraded spender, key-held spender, single-key upgrade control, recognised router unchanged, unrecognised contract, recognised protocol later raised to unlimited, allowance already revoked, and pruned approval-block state. Each checks the advice, the required citations, the uncertainties, grounding (every selected claim exists verbatim and cites known evidence) and the tool budget.
 - **Five adversarial cases** that script the model itself: out-of-scope and duplicate tool calls, an invented claim repaired after feedback, advice on another owner's permission (falls back to baseline), an injected token symbol, and a provider that rejects the key.
 
-`scripts/verify_nooa_live.py` runs the same scenarios with a real model through OpenRouter and writes advice accuracy, grounding rate, repairs, model calls and latency next to the baseline into `evals/results/`.
+`scripts/verify_nooa_live.py` runs the same scenarios with a real model through OpenRouter or NVIDIA NIM and writes advice accuracy, grounding rate, repairs, model calls and latency next to the baseline into `evals/results/`.
 
 ## Alternatives considered
 
@@ -94,6 +94,6 @@ Every report stores the run: each plan, every requested call (accepted or reject
 ## Known limitations
 
 - Drift detection needs approval-block state. Free Monad RPCs keep about two weeks, so older Monad approvals are reported as unverifiable.
-- `upgrade_control` covers EIP-1967 admin slots. UUPS authority inside the implementation is reported as undetermined.
-- The known-spender registry is deliberately small. An address match identifies a contract; it never implies safety.
+- `upgrade_control` covers EIP-1967 admins, beacons and admins fixed in proxy code. UUPS authority inside the implementation is reported as undetermined.
+- The known-spender registry only lists addresses from official sources, so the long tail of spenders stays unknown. An address match identifies a contract; it never implies safety.
 - The agent explains one transaction's permissions. It does not scan a whole wallet; that needs an indexer.

@@ -33,7 +33,7 @@ The same evidence pipeline also works *before* anything is signed. An agent with
 
 **Fails closed.** A failed read, a block that changes mid-check, unknown calldata (such as an unrecognised command inside a batch) or unknown typed data gives *warn: couldn't verify*, never *allow*.
 
-**Fast by default.** A check takes about 1.5 s on mainnet with no model call, since the calling agent is already a model. With `explain: true`, a model selects claim IDs to explain the verdict. It goes through the same grounding validator, with the same rule-based fallback, and cannot change the verdict. Full design and rules: [docs/presign.md](docs/presign.md).
+**Fast by default.** A check takes about 1.5 s on mainnet with no model call, since the calling agent is already a model. With `explain: true`, a model (OpenRouter or NVIDIA NIM) selects claim IDs to explain the verdict. It goes through the same grounding validator, with the same rule-based fallback, and cannot change the verdict. Full design and rules: [docs/presign.md](docs/presign.md).
 
 ### On real traffic
 
@@ -148,22 +148,27 @@ Built on [NOOA](docs/nooa.md) (NVIDIA's agent framework) with OpenRouter models.
 
 `make evaluate` runs **41 offline cases in CI**: historical rules, approval ownership on a real transaction, six exposure transitions, **eight labelled agent scenarios** (upgraded spender, key-held spender, single-key upgrades, recognised router, raised-to-unlimited, revoked, pruned history…) and **five adversarial guardrail cases** in which the model itself is scripted to misbehave, plus **seventeen pre-sign cases** (unlimited grant to a proxy one key controls, the same through a 1-of-3 Safe, upgrades held by a timelock or by an admin fixed in proxy code, approvals hidden inside a multicall and an EIP-7702 batch, a Universal Router swap with a permit, recognised router, unreadable spender, key-held spender, wrong-chain permit, blanket NFT approval, unknown multicall, revoke, chain head moving mid-check, RPC down, and prompt injection through token and signature names). `scripts/verify_nooa_live.py` scores a real model against the rule-based baseline on the same scenarios. [Details](evals/README.md).
 
-### Live model vs baseline (28 Oct 2026, free-tier OpenRouter key)
+### Live model vs baseline
 
 The same 8 labelled agent scenarios, with the on-chain world scripted so only the model varies. Raw results: [`evals/results/`](evals/results/).
 
 | Run | Advice matches label | Grounded | Briefings written by the model | Model calls | Median time |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Rule-based baseline | 8 / 8 | 8 / 8 | n/a | 0 | under 0.1 s |
-| `openrouter/auto` (production setting) | 4 / 8 | 8 / 8 | 8 / 8 | 19 | 24.9 s |
-| `nvidia/nemotron-3.5-super-vl:free` | 7 / 8 | 8 / 8 | 0 / 8 | 7 | 44.9 s |
+| **NVIDIA NIM `nemotron-3.5-super-vl-120b-a12b`**, thinking off (26 Nov) | **7 / 8** | 8 / 8 | **7 / 8** | 21 | 29.0 s |
+| NVIDIA NIM `nemotron-3-ultra-550b-a55b`, thinking off (26 Nov) | 2 / 8 | 8 / 8 | 8 / 8 | 22 | 9.1 s |
+| NVIDIA NIM `mistral-large-4-1t-a52b`, thinking off (26 Nov) | 8 / 8 | 8 / 8 | 0 / 8 | 7 | 123.8 s |
+| NVIDIA NIM `nemotron-3.5-super-vl-120b-a12b`, thinking on (26 Nov) | 5 / 8 | 8 / 8 | 0 / 8 | 8 | 40.4 s |
+| `openrouter/auto`, free tier (28 Oct) | 4 / 8 | 8 / 8 | 8 / 8 | 19 | 24.9 s |
+| `nvidia/nemotron-3.5-super-vl:free` on OpenRouter (28 Oct) | 7 / 8 | 8 / 8 | 0 / 8 | 7 | 44.9 s |
 
 What this shows:
 
 - **The guardrails held every time.** No run produced an ungrounded claim, including when the model's advice was wrong.
-- **The model does not beat the baseline yet.** With free automatic routing it matched the label in 4 of 8 scenarios. That is why the baseline stays the benchmark and the fallback. Why rules should keep deciding, and what the model is for: [docs/model-vs-baseline.md](docs/model-vs-baseline.md).
-- **Failures degrade safely.** The pinned free model broke the required format or timed out in every scenario, so the baseline wrote all 8 briefings. One planning timeout left an investigation incomplete, and that is the single miss.
-- **Limits.** 8 scenarios is a small sample, and `openrouter/auto` can route to different models from run to run.
+- **Reasoning had to be switched off.** Reasoning models spent the planner's and reporter's small token budgets thinking, so their answers were cut off and failed the format check. With `enable_thinking: false` (the default for NIM, `LLM_THINKING=false`), Nemotron Super went from writing 0 of 8 briefings to 7 of 8, with the right advice in 7.
+- **Grounded is not the same as right.** Nemotron Ultra wrote all 8 briefings fast, cited real evidence in every one, and gave the wrong advice in 6. That is why rules decide and the model explains. More in [docs/model-vs-baseline.md](docs/model-vs-baseline.md).
+- **Failures degrade safely.** Mistral Large 4 timed out on the free tier in every scenario, so the baseline wrote all 8 briefings and the advice stayed correct.
+- **Limits.** 8 scenarios is a small sample, and free-tier latency varies between runs.
 
 ## Engineering highlights
 

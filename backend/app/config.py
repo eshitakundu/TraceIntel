@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     nvidia_model: str = Field(
         default="", validation_alias=AliasChoices("NVIDIA_MODEL", "TRACEINTEL_NVIDIA_MODEL")
     )
+    # Reasoning models spend their token budget thinking before they answer, which truncates
+    # the small structured replies the planner and reporter need. Off unless asked for.
+    llm_thinking: bool = Field(
+        default=False, validation_alias=AliasChoices("LLM_THINKING", "TRACEINTEL_LLM_THINKING")
+    )
     rpc_timeout_seconds: float = Field(default=15, gt=0, le=60)
 
     explorer_api_key: SecretStr = SecretStr("")

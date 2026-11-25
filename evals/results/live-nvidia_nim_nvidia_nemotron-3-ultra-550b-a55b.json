@@ -1,0 +1,110 @@
+{
+  "model": "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b",
+  "ran_at": "2026-11-25T20:48:05+00:00",
+  "baseline": {
+    "advice_accuracy": 1.0,
+    "grounded_rate": 1.0,
+    "model_authored_rate": 0.0,
+    "repairs": 0,
+    "llm_calls": 0,
+    "median_seconds": 0.0
+  },
+  "model_summary": {
+    "advice_accuracy": 0.25,
+    "grounded_rate": 1.0,
+    "model_authored_rate": 1.0,
+    "repairs": 0,
+    "llm_calls": 22,
+    "median_seconds": 9.1
+  },
+  "cases": [
+    {
+      "scenario": "spender upgraded after the approval",
+      "author": "model",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 8.5,
+      "reason": null
+    },
+    {
+      "scenario": "spender is a key-held account",
+      "author": "model",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 5.9,
+      "reason": null
+    },
+    {
+      "scenario": "single key controls spender upgrades",
+      "author": "model",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 9.1,
+      "reason": null
+    },
+    {
+      "scenario": "recognised router, unchanged, finite allowance",
+      "author": "model",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 22.9,
+      "reason": null
+    },
+    {
+      "scenario": "unrecognised contract, unchanged, finite allowance",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 6.0,
+      "reason": null
+    },
+    {
+      "scenario": "recognised protocol, allowance raised to unlimited since",
+      "author": "model",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 9.1,
+      "reason": null
+    },
+    {
+      "scenario": "allowance already revoked",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 1,
+      "seconds": 7.0,
+      "reason": null
+    },
+    {
+      "scenario": "approval-block state pruned by the provider",
+      "author": "model",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 10.6,
+      "reason": null
+    }
+  ]
+}

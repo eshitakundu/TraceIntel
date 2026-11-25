@@ -23,6 +23,8 @@ def migrated_test_database() -> Iterator[None]:
         "TRACEINTEL_NVIDIA_API_KEY": "",
         "NVIDIA_MODEL": "",
         "TRACEINTEL_NVIDIA_MODEL": "",
+        "LLM_THINKING": "false",
+        "TRACEINTEL_LLM_THINKING": "false",
     }
     provider_values = {key: os.environ.get(key) for key in test_values}
     os.environ.update(test_values)

@@ -1,0 +1,110 @@
+{
+  "model": "nvidia_nim/nvidia/nemotron-3.5-super-vl-120b-a12b",
+  "ran_at": "2026-11-25T20:46:31+00:00",
+  "baseline": {
+    "advice_accuracy": 1.0,
+    "grounded_rate": 1.0,
+    "model_authored_rate": 0.0,
+    "repairs": 0,
+    "llm_calls": 0,
+    "median_seconds": 0.0
+  },
+  "model_summary": {
+    "advice_accuracy": 0.875,
+    "grounded_rate": 1.0,
+    "model_authored_rate": 0.875,
+    "repairs": 0,
+    "llm_calls": 21,
+    "median_seconds": 29.0
+  },
+  "cases": [
+    {
+      "scenario": "spender upgraded after the approval",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 1,
+      "llm_calls": 3,
+      "seconds": 5.5,
+      "reason": null
+    },
+    {
+      "scenario": "spender is a key-held account",
+      "author": "baseline",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 2,
+      "seconds": 90.1,
+      "reason": "Model unavailable: the model did not answer in time (TimeoutError). Showing rule-based advice."
+    },
+    {
+      "scenario": "single key controls spender upgrades",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 18.9,
+      "reason": null
+    },
+    {
+      "scenario": "recognised router, unchanged, finite allowance",
+      "author": "model",
+      "advice_matches_label": false,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 24.6,
+      "reason": null
+    },
+    {
+      "scenario": "unrecognised contract, unchanged, finite allowance",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 50.1,
+      "reason": null
+    },
+    {
+      "scenario": "recognised protocol, allowance raised to unlimited since",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 29.0,
+      "reason": null
+    },
+    {
+      "scenario": "allowance already revoked",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 1,
+      "seconds": 9.5,
+      "reason": null
+    },
+    {
+      "scenario": "approval-block state pruned by the provider",
+      "author": "model",
+      "advice_matches_label": true,
+      "grounded": true,
+      "repairs": 0,
+      "planner_rejections": 0,
+      "llm_calls": 3,
+      "seconds": 33.7,
+      "reason": null
+    }
+  ]
+}
