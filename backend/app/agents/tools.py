@@ -10,6 +10,7 @@ import hashlib
 import json
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from app.agents.catalog import short
@@ -24,26 +25,33 @@ from app.models.interpretation import CitedClaim, ToolName
 ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"
 OWNER_SELECTOR = "0x8da5cb5b"
 
-# Published addresses of widely used spender contracts. A match identifies a contract;
-# it is never treated as a safety verdict.
+# Published addresses of widely used spender contracts, each with the official page it was
+# copied from (spender_registry.json). A match identifies a contract; it is never treated
+# as a safety verdict.
+REGISTRY_PATH = Path(__file__).with_name("spender_registry.json")
+
+
+def load_registry(path: Path = REGISTRY_PATH) -> dict[int, list[dict[str, Any]]]:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    return {int(chain): entries for chain, entries in raw.items() if not chain.startswith("_")}
+
+
+REGISTRY = load_registry()
 KNOWN_SPENDERS: dict[int, dict[str, str]] = {
-    1: {
-        "0x000000000022d473030f116ddee9f6b43ac78ba3": "Uniswap Permit2",
-        "0x7a250d5630b4cf539739df2c5dacb4c659f2488d": "Uniswap V2 Router 02",
-        "0xe592427a0aece92de3edee1f18e0157c05861564": "Uniswap V3 SwapRouter",
-        "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45": "Uniswap V3 SwapRouter02",
-        "0x1111111254eeb25477b68fb85ed929f73a960582": "1inch Aggregation Router v5",
-        "0xdef1c0ded9bec7f1a1670819833240f027b25eff": "0x Exchange Proxy",
-        "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb": "Morpho Blue",
-        "0x0000000000000068f116a894984e2db1123eb395": "OpenSea Seaport 1.6",
-        "0x1e0049783f008a0085193e00003d00cd54003c71": "OpenSea Conduit",
-    }
+    chain: {entry["address"]: entry["name"] for entry in entries}
+    for chain, entries in REGISTRY.items()
+}
+SPENDER_SOURCES: dict[int, dict[str, str]] = {
+    chain: {entry["address"]: entry["source"] for entry in entries}
+    for chain, entries in REGISTRY.items()
 }
 # Recognised spenders that legitimately take blanket NFT approvals (setApprovalForAll).
-NFT_MARKETPLACES = {
-    "0x0000000000000068f116a894984e2db1123eb395",
-    "0x1e0049783f008a0085193e00003d00cd54003c71",
-}
+NFT_MARKETPLACES = frozenset(
+    entry["address"]
+    for entries in REGISTRY.values()
+    for entry in entries
+    if entry.get("nft_marketplace")
+)
 
 
 @dataclass
@@ -260,7 +268,12 @@ async def known_spender(ctx: ToolContext, pid: str) -> ToolResult:
                 source="TraceIntel spender registry",
                 description="Static list of published protocol contract addresses",
                 data_json=json.dumps(
-                    {"spender": spender, "chain_id": ctx.chain_id, "match": match}
+                    {
+                        "spender": spender,
+                        "chain_id": ctx.chain_id,
+                        "match": match,
+                        "source": SPENDER_SOURCES.get(ctx.chain_id, {}).get(spender),
+                    }
                 ),
             )
         ],
