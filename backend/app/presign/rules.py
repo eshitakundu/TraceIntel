@@ -98,12 +98,21 @@ def payload_reasons(decoded: Decoded, chain_id: int) -> list[Reason]:
                 claim_ids=("input",),
             )
         )
+    if decoded.partial:
+        reasons.append(
+            Reason(
+                rule="UNRECOGNISED_PAYLOAD",
+                severity="warn",
+                text=f"Could not verify part of the batch: {decoded.note}",
+                claim_ids=("input",),
+            )
+        )
     if decoded.truncated:
         reasons.append(
             Reason(
                 rule="COULD_NOT_VERIFY",
                 severity="warn",
-                text="Could not verify: the signature covers more tokens than are checked.",
+                text="Could not verify: the payload grants more permissions than are checked.",
                 claim_ids=("input",),
             )
         )

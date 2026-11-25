@@ -10,8 +10,12 @@ import json
 import re
 from typing import Any, Literal
 
+from eth_abi.abi import decode as abi_decode
+from eth_abi.exceptions import DecodingError
+from eth_utils.crypto import keccak
 from pydantic import Field
 
+from app.agents.tools import REGISTRY
 from app.blockchain.calldata import decode_calldata
 from app.blockchain.event_decoder import is_unlimited
 from app.blockchain.signature_resolver import resolve
@@ -99,6 +103,8 @@ class Decoded(FrozenModel):
     note: str = ""
     domain_chain_id: int | None = None
     truncated: bool = False
+    # A batch where some inner calls were decoded and others could not be.
+    partial: bool = False
 
 
 class TxInput(FrozenModel):
@@ -138,15 +144,27 @@ def _int(value: Any) -> int:
 
 def decode_transaction_intent(tx: TxInput) -> Decoded:
     data = tx.data.lower()
-    owner, to = tx.sender.lower(), tx.to.lower()
     if not HEX.fullmatch(data):
         return Decoded(source="transaction", status="unrecognised", note="Calldata is not hex.")
+    return _decode_call(tx.sender.lower(), tx.to.lower(), data, 0)
+
+
+def _decode_call(owner: str, to: str, data: str, depth: int) -> Decoded:
+    """One call made by `owner` to `to`: an approval, a batch of calls, or neither."""
     if data == "0x":
         return Decoded(
             source="transaction",
             status="no_approval",
             note="Plain value transfer with no calldata; it grants no token permission.",
         )
+    if data[:10] in SELF_PERMITS:
+        try:
+            return _self_permit(owner, to, data)
+        except (DecodingError, ValueError, OverflowError) as exc:
+            return _unknown(f"The permit calldata is malformed ({type(exc).__name__}).")
+    batch = _decode_batch(owner, to, data, depth)
+    if batch is not None:
+        return batch
     signature, arguments = decode_calldata(data, APPROVAL_ABI)
     # The shared decoder also falls back to other well-known functions (transfer, ...).
     if signature is None or signature not in APPROVAL_SIGNATURES or arguments is None:
@@ -162,7 +180,7 @@ def decode_transaction_intent(tx: TxInput) -> Decoded:
             source="transaction",
             status="unrecognised",
             note=f"Function {data[:10]} is not a recognised approval call. It may still grant "
-            "permissions (for example inside a multicall), so it cannot be cleared.",
+            "permissions, so it cannot be cleared.",
         )
     args = {a["name"]: a["value"] for a in json.loads(arguments)}
     if signature == "setApprovalForAll(address,bool)":
@@ -219,6 +237,262 @@ def decode_transaction_intent(tx: TxInput) -> Decoded:
             owner=owner,
         )
     return Decoded(source="transaction", status="recognised", function=signature, intents=(intent,))
+
+
+# --- Batches: calls that carry other calls ---------------------------------------------
+# Inner calls are decoded only when it is certain whose permissions they change:
+#   multicall(...) on a contract   -> each inner call runs as the sender, against that contract
+#   Universal Router execute(...)  -> commands; PERMIT2_PERMIT(_BATCH) carry signed permits
+#   execute(bytes32,bytes) to self -> an EIP-7702 / ERC-7821 batch run as the sender
+# Anything else that carries calls is never cleared by its name alone.
+
+
+def selector(signature: str) -> str:
+    return "0x" + keccak(text=signature).hex()[:8]
+
+
+MAX_DEPTH = 2
+MAX_INNER_CALLS = 32
+MULTICALLS = {
+    selector(sig): (sig, types)
+    for sig, types in (
+        ("multicall(bytes[])", ["bytes[]"]),
+        ("multicall(uint256,bytes[])", ["uint256", "bytes[]"]),
+        ("multicall(bytes32,bytes[])", ["bytes32", "bytes[]"]),
+    )
+}
+PERMIT_ARGS = ["address", "uint256", "uint256", "uint8", "bytes32", "bytes32"]
+SELF_PERMITS = {
+    selector(sig): sig
+    for sig in (
+        "selfPermit(address,uint256,uint256,uint8,bytes32,bytes32)",
+        "selfPermitIfNecessary(address,uint256,uint256,uint8,bytes32,bytes32)",
+        # DAI-style permit(holder, spender, nonce, expiry, allowed): always unlimited.
+        "selfPermitAllowed(address,uint256,uint256,uint8,bytes32,bytes32)",
+        "selfPermitAllowedIfNecessary(address,uint256,uint256,uint8,bytes32,bytes32)",
+    )
+}
+ROUTER_EXECUTES = {
+    selector(sig): (sig, types)
+    for sig, types in (
+        ("execute(bytes,bytes[],uint256)", ["bytes", "bytes[]", "uint256"]),
+        ("execute(bytes,bytes[])", ["bytes", "bytes[]"]),
+    )
+}
+ACCOUNT_EXECUTE = selector("execute(bytes32,bytes)")
+# Calls that make another account act (a Safe, Multicall3, a smart account). Their inner
+# calls change that account's permissions, so a recognised name must not clear them.
+OPAQUE_BATCHES = {
+    selector(sig): sig
+    for sig in (
+        "execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)",
+        "multiSend(bytes)",
+        "aggregate((address,bytes)[])",
+        "aggregate3((address,bool,bytes)[])",
+        "aggregate3Value((address,bool,uint256,bytes)[])",
+        "tryAggregate(bool,(address,bytes)[])",
+    )
+}
+# Universal Router commands (command byte & 0x3f). These codes mean the same thing in
+# every Universal Router version; any other code is reported as not inspected.
+ROUTER_PERMIT = 0x0A
+ROUTER_PERMIT_BATCH = 0x03
+ROUTER_NO_GRANT = {
+    0x00: "V3_SWAP_EXACT_IN",
+    0x01: "V3_SWAP_EXACT_OUT",
+    0x02: "PERMIT2_TRANSFER_FROM",
+    0x04: "SWEEP",
+    0x05: "TRANSFER",
+    0x06: "PAY_PORTION",
+    0x08: "V2_SWAP_EXACT_IN",
+    0x09: "V2_SWAP_EXACT_OUT",
+    0x0B: "WRAP_ETH",
+    0x0C: "UNWRAP_WETH",
+    0x0D: "PERMIT2_TRANSFER_FROM_BATCH",
+    0x0E: "BALANCE_CHECK_ERC20",
+}
+PERMIT_DETAILS = "(address,uint160,uint48,uint48)"
+PERMIT_SINGLE = f"({PERMIT_DETAILS},address,uint256)"
+PERMIT_BATCH = f"({PERMIT_DETAILS}[],address,uint256)"
+UNIVERSAL_ROUTERS = frozenset(
+    entry["address"]
+    for entries in REGISTRY.values()
+    for entry in entries
+    if entry["name"].startswith("Uniswap Universal Router")
+)
+
+
+def _unknown(note: str, function: str | None = None) -> Decoded:
+    return Decoded(source="transaction", status="unrecognised", function=function, note=note)
+
+
+def _no_grant(function: str, note: str) -> Decoded:
+    return Decoded(source="transaction", status="no_approval", function=function, note=note)
+
+
+def _merge(function: str, parts: list[Decoded]) -> Decoded:
+    """One result for a batch: every inner permission, and whether any part is unknown."""
+    if not parts:
+        return _unknown(f"{function} carries no inner calls.", function)
+    intents = [intent for part in parts for intent in part.intents]
+    unknown = [p for p in parts if p.status == "unrecognised" or p.partial]
+    truncated = any(p.truncated for p in parts) or len(intents) > MAX_INTENTS
+    if unknown:
+        note = (
+            f"{function}: {len(unknown)} of {len(parts)} inner calls could not be decoded "
+            f"({unknown[0].note.rstrip('.')})."
+        )
+    elif intents:
+        note = f"{function}: {len(intents)} permission change(s) in {len(parts)} inner calls."
+    else:
+        note = f"{function}: none of its {len(parts)} inner calls grants a token permission."
+    if intents:
+        return Decoded(
+            source="transaction",
+            status="recognised",
+            function=function,
+            intents=tuple(intents[:MAX_INTENTS]),
+            note=note,
+            truncated=truncated,
+            partial=bool(unknown),
+        )
+    return Decoded(
+        source="transaction",
+        status="unrecognised" if unknown else "no_approval",
+        function=function,
+        note=note,
+    )
+
+
+def _self_permit(owner: str, router: str, data: str) -> Decoded:
+    sig = SELF_PERMITS[data[:10]]
+    token, amount_or_nonce, deadline, *_ = abi_decode(PERMIT_ARGS, bytes.fromhex(data[10:]))
+    dai_style = "Allowed" in sig
+    amount = 2**256 - 1 if dai_style else int(amount_or_nonce)
+    intent = Intent(
+        kind="erc20_permit",
+        mode="set",
+        target=token.lower(),
+        token=token.lower(),
+        owner=owner,
+        spender=router,
+        amount_raw=str(amount),
+        unlimited=unlimited(amount),
+        grants=amount > 0,
+        expiration=int(deadline) or None,
+    )
+    return Decoded(source="transaction", status="recognised", function=sig, intents=(intent,))
+
+
+def _permit2_intents(owner: str, details: list[Any], spender: str) -> list[Intent]:
+    return [
+        Intent(
+            kind="permit2_permit",
+            mode="set",
+            target=PERMIT2,
+            token=token.lower(),
+            owner=owner,
+            spender=spender.lower(),
+            amount_raw=str(int(amount)),
+            unlimited=unlimited(int(amount), 160),
+            grants=int(amount) > 0,
+            expiration=int(expiration),
+        )
+        for token, amount, expiration, _nonce in details
+    ]
+
+
+def _universal_router(owner: str, to: str, data: str) -> Decoded:
+    sig, types = ROUTER_EXECUTES[data[:10]]
+    commands, inputs = abi_decode(types, bytes.fromhex(data[10:]))[:2]
+    if len(commands) != len(inputs) or len(commands) > MAX_INNER_CALLS:
+        return _unknown("Universal Router commands and inputs do not line up.", sig)
+    parts: list[Decoded] = []
+    for raw, payload in zip(commands, inputs, strict=True):
+        command = raw & 0x3F
+        if command == ROUTER_PERMIT:
+            (details, spender, _deadline), _sig = abi_decode([PERMIT_SINGLE, "bytes"], payload)
+            intents = _permit2_intents(owner, [details], spender)
+        elif command == ROUTER_PERMIT_BATCH:
+            (details, spender, _deadline), _sig = abi_decode([PERMIT_BATCH, "bytes"], payload)
+            intents = _permit2_intents(owner, list(details), spender)
+        elif command in ROUTER_NO_GRANT:
+            parts.append(_no_grant(ROUTER_NO_GRANT[command], f"{ROUTER_NO_GRANT[command]}."))
+            continue
+        else:
+            parts.append(_unknown(f"Universal Router command 0x{command:02x} is not inspected"))
+            continue
+        parts.append(
+            Decoded(
+                source="transaction",
+                status="recognised",
+                function="PERMIT2_PERMIT",
+                intents=tuple(intents[:MAX_INTENTS]),
+                truncated=len(intents) > MAX_INTENTS,
+            )
+        )
+    return _merge(f"Universal Router {sig}", parts)
+
+
+def _account_batch(owner: str, data: str, depth: int) -> Decoded:
+    mode, execution = abi_decode(["bytes32", "bytes"], bytes.fromhex(data[10:]))
+    call_type = mode[0]
+    calls: list[tuple[str, int, bytes]]
+    if call_type == 0x01:
+        try:
+            calls = list(abi_decode(["(address,uint256,bytes)[]"], execution)[0])
+        except (DecodingError, ValueError, OverflowError):
+            calls = list(abi_decode(["(address,uint256,bytes)[]", "bytes"], execution)[0])
+    elif call_type == 0x00 and len(execution) >= 52:
+        calls = [("0x" + execution[:20].hex(), int.from_bytes(execution[20:52]), execution[52:])]
+    else:
+        return _unknown(f"Account execute call type 0x{call_type:02x} is not inspected.")
+    if len(calls) > MAX_INNER_CALLS:
+        return _unknown(f"The batch has more than {MAX_INNER_CALLS} calls.")
+    parts = [
+        _decode_call(owner, target.lower(), "0x" + inner.hex(), depth + 1)
+        for target, _value, inner in calls
+    ]
+    return _merge("execute(bytes32,bytes) batch from your own account", parts)
+
+
+def _decode_batch(owner: str, to: str, data: str, depth: int) -> Decoded | None:
+    """Decode a call that carries other calls, or None if this is not one."""
+    head = data[:10]
+    if head not in MULTICALLS and head not in ROUTER_EXECUTES and head != ACCOUNT_EXECUTE:
+        if head in OPAQUE_BATCHES:
+            return _unknown(
+                f"{OPAQUE_BATCHES[head]} makes another account act; its inner calls are not "
+                "inspected, so it cannot be cleared.",
+                OPAQUE_BATCHES[head],
+            )
+        return None
+    if depth >= MAX_DEPTH:
+        return _unknown("Batches nested this deep are not inspected.")
+    try:
+        if head in MULTICALLS:
+            sig, types = MULTICALLS[head]
+            calls = abi_decode(types, bytes.fromhex(data[10:]))[-1]
+            if len(calls) > MAX_INNER_CALLS:
+                return _unknown(f"The multicall has more than {MAX_INNER_CALLS} calls.", sig)
+            return _merge(sig, [_decode_call(owner, to, "0x" + c.hex(), depth + 1) for c in calls])
+        if head in ROUTER_EXECUTES:
+            if to not in UNIVERSAL_ROUTERS:
+                return _unknown(
+                    f"{ROUTER_EXECUTES[head][0]} sent to {to}, which is not a published "
+                    "Uniswap Universal Router; its commands are not inspected.",
+                    ROUTER_EXECUTES[head][0],
+                )
+            return _universal_router(owner, to, data)
+        if to != owner:
+            return _unknown(
+                "execute(bytes32,bytes) sent to another account runs its calls as that "
+                "account; they are not inspected.",
+                "execute(bytes32,bytes)",
+            )
+        return _account_batch(owner, data, depth)
+    except (DecodingError, ValueError, OverflowError, TypeError) as exc:
+        return _unknown(f"The batch calldata is malformed ({type(exc).__name__}).")
 
 
 def decode_typed_data(typed: dict[str, Any], owner: str | None) -> Decoded:

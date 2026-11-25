@@ -25,7 +25,14 @@ from app.blockchain.chains import Chain
 from app.blockchain.proxy_detector import IMPLEMENTATION_SLOT
 from app.blockchain.rpc_client import RpcClient
 from app.config import Settings
-from app.presign.intents import PERMIT2, Decoded, TxInput, decode_transaction_intent
+from app.presign.intents import (
+    ACCOUNT_EXECUTE,
+    PERMIT2,
+    Decoded,
+    TxInput,
+    decode_transaction_intent,
+    selector,
+)
 from app.presign.intents import decode_typed_data as decode_signature
 from app.presign.reads import (
     ALLOWANCE,
@@ -44,6 +51,7 @@ KEY = "0x" + "e0" * 20
 IMPL = "0x" + "a1" * 20
 COLLECTION = "0x" + "c0" * 20
 UNISWAP_V3_ROUTER = "0xe592427a0aece92de3edee1f18e0157c05861564"
+UNIVERSAL_ROUTER = "0x66a9893cc07d91d95644aedd05d03f95e1dba8af"
 CONTRACT_CODE = "0x6080604052348015600f57600080fd5b50"
 PROXY_CODE = "0x363d3d373d3d3d363d7f360894a13ba1a3210667c828492db98dca3e2076cc"
 BLOCK_HASH, MOVED_HASH = "0x" + "b1" * 32, "0x" + "b2" * 32
@@ -159,6 +167,36 @@ def approve(spender: str, amount: int, token: str = TOKEN) -> TxInput:
     return TxInput.model_validate({"from": OWNER, "to": token, "data": data})
 
 
+def multicall(token: str, *calls: TxInput) -> TxInput:
+    inner = [bytes.fromhex(c.data[2:]) for c in calls]
+    data = selector("multicall(bytes[])") + encode(["bytes[]"], [inner]).hex()
+    return TxInput.model_validate({"from": OWNER, "to": token, "data": data})
+
+
+def account_batch(*calls: TxInput) -> TxInput:
+    """An EIP-7702 / ERC-7821 batch the owner sends to its own delegated account."""
+    batch = [(c.to, 0, bytes.fromhex(c.data[2:])) for c in calls]
+    execution = encode(["(address,uint256,bytes)[]"], [batch])
+    mode = bytes([0x01]) + bytes(31)
+    data = ACCOUNT_EXECUTE + encode(["bytes32", "bytes"], [mode, execution]).hex()
+    return TxInput.model_validate({"from": OWNER, "to": OWNER, "data": data})
+
+
+def router_swap_with_permit(amount: int) -> TxInput:
+    """Universal Router: PERMIT2_PERMIT to the router, then V3_SWAP_EXACT_IN."""
+    permit = encode(
+        ["((address,uint160,uint48,uint48),address,uint256)", "bytes"],
+        [((TOKEN, amount, NOW + 3600, 0), UNIVERSAL_ROUTER, NOW + 600), bytes(65)],
+    )
+    data = (
+        selector("execute(bytes,bytes[],uint256)")
+        + encode(
+            ["bytes", "bytes[]", "uint256"], [bytes([0x0A, 0x00]), [permit, b""], NOW + 600]
+        ).hex()
+    )
+    return TxInput.model_validate({"from": OWNER, "to": UNIVERSAL_ROUTER, "data": data})
+
+
 def set_approval_for_all(operator: str, approved: bool = True) -> TxInput:
     data = "0xa22cb465" + operator[2:].zfill(64) + format(int(approved), "064x")
     return TxInput.model_validate({"from": OWNER, "to": COLLECTION, "data": data})
@@ -266,6 +304,27 @@ PRESIGN_SCENARIOS = (
         verdict="warn",
         rule="UNKNOWN_SPENDER",
         absent="UPGRADEABLE_SPENDER",
+    ),
+    PresignScenario(
+        "unlimited approval to a key hidden inside a token multicall",
+        ChainState(),
+        tx=multicall(TOKEN, approve(KEY, MAX)),
+        verdict="block",
+        rule="SPENDER_IS_KEY",
+    ),
+    PresignScenario(
+        "EIP-7702 batch from the owner's own account approving a key",
+        ChainState(),
+        tx=account_batch(approve(KEY, MAX)),
+        verdict="block",
+        rule="SPENDER_IS_KEY",
+    ),
+    PresignScenario(
+        "Universal Router swap with a finite Permit2 permit",
+        ChainState(),
+        tx=router_swap_with_permit(10**18),
+        verdict="allow",
+        absent="UNRECOGNISED_PAYLOAD",
     ),
     PresignScenario(
         "recognised router, finite amount",
