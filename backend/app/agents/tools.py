@@ -15,7 +15,7 @@ from typing import Any
 
 from app.agents.catalog import short
 from app.blockchain.contract_inspector import bytecode, delegate_of
-from app.blockchain.proxy_detector import IMPLEMENTATION_SLOT, storage_address
+from app.blockchain.proxy_detector import BEACON_SLOT, IMPLEMENTATION_SLOT, storage_address
 from app.blockchain.rpc_client import RpcClient, RpcError
 from app.models.blockchain import Contract, Coverage, Evidence
 from app.models.exposure import PersistentExposure
@@ -24,6 +24,16 @@ from app.models.interpretation import CitedClaim, ToolName
 # keccak256("eip1967.proxy.admin") - 1
 ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"
 OWNER_SELECTOR = "0x8da5cb5b"
+ADMIN_SELECTOR = "0xf851a440"  # admin()
+SAFE_THRESHOLD_SELECTOR = "0xe75235b8"  # getThreshold()
+SAFE_OWNERS_SELECTOR = "0xa0e67e2b"  # getOwners()
+MIN_DELAY_SELECTOR = "0xf27a0c92"  # getMinDelay(), OpenZeppelin TimelockController
+DELAY_SELECTOR = "0x6a42b8f8"  # delay(), Compound-style Timelock
+# An address that is never a proxy admin, used to check that admin() is caller-gated.
+PROBE_CALLER = "0x0000000000000000000000000000000000000001"
+MAX_CONTROL_HOPS = 3
+MAX_SAFE_OWNERS = 50
+MAX_TIMELOCK_DELAY = 10 * 365 * 86400
 
 # Published addresses of widely used spender contracts, each with the official page it was
 # copied from (spender_registry.json). A match identifies a contract; it is never treated
@@ -99,10 +109,15 @@ async def spender_profile(ctx: ToolContext, pid: str) -> ToolResult:
     code = await bytecode(ctx.rpc, spender, ctx.tag)
     delegate = delegate_of(code)
     implementation = None
+    beacon = None
     if code != "0x" and not delegate:
         implementation = storage_address(
             await ctx.rpc.call("eth_getStorageAt", [spender, IMPLEMENTATION_SLOT, ctx.tag])
         )
+        if not implementation:
+            beacon = storage_address(
+                await ctx.rpc.call("eth_getStorageAt", [spender, BEACON_SLOT, ctx.tag])
+            )
     eid = f"{ctx.prefix}:agent:{pid}:spender"
     result = ToolResult(
         evidence=[
@@ -118,6 +133,7 @@ async def spender_profile(ctx: ToolContext, pid: str) -> ToolResult:
                         "code_fingerprint": fingerprint(code) if code != "0x" else None,
                         "delegate": delegate,
                         "implementation": implementation,
+                        "beacon": beacon,
                     }
                 ),
             )
@@ -140,6 +156,12 @@ async def spender_profile(ctx: ToolContext, pid: str) -> ToolResult:
         text = (
             f"Spender {name} is an upgradeable EIP-1967 proxy; its logic currently lives at "
             f"{short(implementation)} and can be replaced by its upgrade authority."
+        )
+    elif beacon:
+        result.facts["proxy"] = True
+        text = (
+            f"Spender {name} is an upgradeable EIP-1967 beacon proxy; its logic comes from "
+            f"beacon {short(beacon)} and can be replaced by the beacon's owner."
         )
     else:
         text = f"Spender {name} is a contract with no EIP-1967 upgrade slot set."
@@ -185,67 +207,178 @@ async def spender_profile(ctx: ToolContext, pid: str) -> ToolResult:
     return result
 
 
+async def _try_call(ctx: ToolContext, to: str, data: str, sender: str | None = None) -> str | None:
+    """eth_call that treats a revert or malformed reply as "no answer"."""
+    tx = {"to": to, "data": data} | ({"from": sender} if sender else {})
+    try:
+        result = await ctx.rpc.call("eth_call", [tx, ctx.tag])
+    except (RpcError, ValueError):
+        return None
+    return result if isinstance(result, str) and result.startswith("0x") else None
+
+
+def _word_address(word: str | None) -> str | None:
+    if word is None or len(word) != 66:
+        return None
+    try:
+        return storage_address(word)
+    except ValueError:
+        return None
+
+
+def _word_uint(word: str | None) -> int | None:
+    if word is None or len(word) != 66:
+        return None
+    try:
+        return int(word, 16)
+    except ValueError:
+        return None
+
+
+def _address_array_length(word: str | None) -> int | None:
+    """Length of an ABI-encoded address[] return value, if it is well formed."""
+    if word is None or len(word) < 130 or (len(word) - 2) % 64:
+        return None
+    try:
+        offset, length = int(word[2:66], 16), int(word[66:130], 16)
+    except ValueError:
+        return None
+    if offset != 32 or len(word) != 130 + 64 * length:
+        return None
+    return length
+
+
+def embedded_addresses(code: str, limit: int = 8) -> list[str]:
+    """20-byte constants pushed by the bytecode (PUSH20, or PUSH32 with 12 zero bytes)."""
+    try:
+        raw = bytes.fromhex(code[2:]) if code.startswith("0x") else b""
+    except ValueError:
+        return []
+    found: list[str] = []
+    i = 0
+    while i < len(raw) and len(found) < limit:
+        op = raw[i]
+        size = op - 0x5F if 0x60 <= op <= 0x7F else 0
+        value = raw[i + 1 : i + 1 + size]
+        if len(value) == size and (size == 20 or (size == 32 and value[:12] == bytes(12))):
+            candidate = "0x" + value[-20:].hex()
+            if int(candidate, 16) > 0xFFFF and candidate not in found:
+                found.append(candidate)
+        i += 1 + size
+    return found
+
+
+async def immutable_admin(ctx: ToolContext, proxy: str, code: str) -> str | None:
+    """Find an admin fixed in the proxy's code (Aave-style immutable admin proxies).
+
+    A candidate counts only if admin() answers with that address when called from it, and
+    not when called from anyone else: that is the caller-gated admin() of a transparent
+    proxy, so the answer can't come from the implementation.
+    """
+    for candidate in embedded_addresses(code):
+        if _word_address(await _try_call(ctx, proxy, ADMIN_SELECTOR, candidate)) != candidate:
+            continue
+        if _word_address(await _try_call(ctx, proxy, ADMIN_SELECTOR, PROBE_CALLER)) == candidate:
+            return None
+        return candidate
+    return None
+
+
+def _duration(seconds: int) -> str:
+    if seconds >= 86400:
+        days = round(seconds / 86400, 1)
+        return f"{days:g} day" + ("" if days == 1 else "s")
+    hours = round(seconds / 3600, 1)
+    return f"{hours:g} hour" + ("" if hours == 1 else "s")
+
+
+async def classify_controller(
+    ctx: ToolContext, address: str, chain: list[dict[str, Any]]
+) -> tuple[str, str]:
+    """Walk an upgrade authority up to MAX_CONTROL_HOPS: key, Safe multisig, timelock, owner()."""
+    code = await bytecode(ctx.rpc, address, ctx.tag)
+    hop: dict[str, Any] = {"address": address, "code_bytes": (len(code) - 2) // 2}
+    chain.append(hop)
+    if code == "0x" or delegate_of(code):
+        hop["type"] = "key"
+        return "single_key", f"{short(address)}, a single externally owned key"
+    threshold = _word_uint(await _try_call(ctx, address, SAFE_THRESHOLD_SELECTOR))
+    if threshold and threshold <= MAX_SAFE_OWNERS:
+        owners = _address_array_length(await _try_call(ctx, address, SAFE_OWNERS_SELECTOR))
+        if owners and threshold <= owners <= MAX_SAFE_OWNERS:
+            hop.update(type="multisig", threshold=threshold, owners=owners)
+            if threshold == 1:
+                return "single_key", (
+                    f"{short(address)}, a 1-of-{owners} multisig: any one of its keys can act alone"
+                )
+            return "contract", f"{short(address)}, a {threshold}-of-{owners} multisig"
+    for selector in (MIN_DELAY_SELECTOR, DELAY_SELECTOR):
+        delay = _word_uint(await _try_call(ctx, address, selector))
+        if delay and delay <= MAX_TIMELOCK_DELAY:
+            hop.update(type="timelock", delay_seconds=delay)
+            return "contract", (
+                f"{short(address)}, a timelock that holds every change for {_duration(delay)}"
+            )
+    owner = _word_address(await _try_call(ctx, address, OWNER_SELECTOR))
+    hop["owner"] = owner
+    if owner and owner != address and len(chain) < MAX_CONTROL_HOPS:
+        control, described = await classify_controller(ctx, owner, chain)
+        return control, f"contract {short(address)}, owned by {described}"
+    hop["type"] = "contract"
+    return "contract", f"contract {short(address)}"
+
+
+VIA = {"eip1967_beacon": "its beacon, ", "immutable_admin": "an admin fixed in its code, "}
+
+
 async def upgrade_control(ctx: ToolContext, pid: str) -> ToolResult:
     spender = ctx.targets[pid].historical.spender
     name = short(spender)
     admin = storage_address(await ctx.rpc.call("eth_getStorageAt", [spender, ADMIN_SLOT, ctx.tag]))
-    eid = f"{ctx.prefix}:agent:{pid}:control"
-    data: dict[str, Any] = {"spender": spender, "block": ctx.tag, "admin": admin}
-    facts: dict[str, Any] = {}
+    found_by = "eip1967_admin_slot" if admin else None
     if not admin:
-        facts["control"] = "undetermined"
+        beacon = storage_address(
+            await ctx.rpc.call("eth_getStorageAt", [spender, BEACON_SLOT, ctx.tag])
+        )
+        if beacon:
+            admin, found_by = beacon, "eip1967_beacon"
+    if not admin:
+        admin = await immutable_admin(ctx, spender, await bytecode(ctx.rpc, spender, ctx.tag))
+        found_by = "immutable_admin" if admin else None
+    eid = f"{ctx.prefix}:agent:{pid}:control"
+    chain: list[dict[str, Any]] = []
+    data: dict[str, Any] = {
+        "spender": spender,
+        "block": ctx.tag,
+        "admin": admin,
+        "found_by": found_by,
+        "chain": chain,
+    }
+    if not admin:
+        control = "undetermined"
         text = (
-            f"Spender {name} records no EIP-1967 admin; if it is upgradeable, the authority sits "
-            "inside its implementation (UUPS-style) and was not determined."
+            f"Spender {name} records no EIP-1967 admin or beacon and no admin in its code; if "
+            "it is upgradeable, the authority sits inside its implementation (UUPS-style) and "
+            "was not determined."
         )
     else:
-        admin_code = await bytecode(ctx.rpc, admin, ctx.tag)
-        data["admin_code_bytes"] = (len(admin_code) - 2) // 2
-        if admin_code == "0x" or delegate_of(admin_code):
-            facts["control"] = "single_key"
-            text = (
-                f"Upgrades to spender {name} are controlled by {short(admin)}, a single "
-                "externally owned key: one private key can replace the spender's logic."
-            )
-        else:
-            owner = None
-            try:
-                word = await ctx.rpc.call(
-                    "eth_call", [{"to": admin, "data": OWNER_SELECTOR}, ctx.tag]
-                )
-                owner = storage_address(word) if isinstance(word, str) and len(word) == 66 else None
-            except (RpcError, ValueError):
-                owner = None
-            data["admin_owner"] = owner
-            if owner:
-                owner_code = await bytecode(ctx.rpc, owner, ctx.tag)
-                single = owner_code == "0x" or bool(delegate_of(owner_code))
-                facts["control"] = "single_key" if single else "contract"
-                text = (
-                    f"Upgrades to spender {name} go through contract {short(admin)}, owned by "
-                    + (
-                        f"{short(owner)}, a single externally owned key."
-                        if single
-                        else f"contract {short(owner)} (for example a multisig or timelock)."
-                    )
-                )
-            else:
-                facts["control"] = "contract"
-                text = (
-                    f"Upgrades to spender {name} are controlled by contract {short(admin)} "
-                    "(for example a multisig, timelock or proxy admin)."
-                )
+        control, described = await classify_controller(ctx, admin, chain)
+        via = VIA.get(found_by or "", "")
+        text = f"Upgrades to spender {name} are controlled by {via}{described}."
+        if control == "single_key":
+            text += " One private key can replace the spender's logic."
     return ToolResult(
         claims=[CitedClaim(id=f"{pid}:control", text=text, evidence_ids=(eid,))],
         evidence=[
             Evidence(
                 id=eid,
-                source="eth_getStorageAt / eth_getCode / eth_call owner()",
-                description="EIP-1967 upgrade authority at the checked block",
+                source="eth_getStorageAt / eth_getCode / eth_call",
+                description="Upgrade authority at the checked block: EIP-1967 admin, beacon "
+                "or code-fixed admin, then multisig threshold, timelock delay and owner()",
                 data_json=json.dumps(data),
             )
         ],
-        facts=facts,
+        facts={"control": control},
     )
 
 
