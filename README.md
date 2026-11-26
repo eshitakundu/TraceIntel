@@ -174,7 +174,7 @@ What this shows:
 
 - **Correct under real chain conditions.** Reads are pinned to block hashes (EIP-1898) and revalidated, and reorgs invalidate state and cached reports. It falls back to labelled current state when providers prune history, recognises EIP-7702 delegated accounts and UNI-style uint96 "infinite" approvals, and keeps exact uint256 strings with no floats.
 - **Production-shaped backend.** Job leases make stale workers stop. A self-healing heartbeat, atomic SQL budgets (per-client, daily, model), refunds for non-existent transactions, and structured logs that never contain secrets.
-- **Strictly typed and tested.** Frozen Pydantic models, mypy strict, 120 backend tests on SQLite and PostgreSQL in CI, frontend unit tests, Playwright browser tests at four viewports, and a Docker smoke test.
+- **Strictly typed and tested.** Frozen Pydantic models, mypy strict, 122 backend tests on SQLite and PostgreSQL in CI, frontend unit tests, Playwright browser tests at four viewports, and a Docker smoke test.
 
 ## Networks
 
@@ -205,7 +205,7 @@ Without `OPENROUTER_API_KEY`, the rule-based baseline produces the investigation
 
 ## Testing
 
-CI runs **155 tests** on every push: 120 backend (pytest), 20 frontend (Vitest) and 15 end-to-end browser tests (Playwright), plus the 41 evaluation cases.
+CI runs **157 tests** on every push: 122 backend (pytest), 20 frontend (Vitest) and 15 end-to-end browser tests (Playwright), plus the 41 evaluation cases.
 
 ```sh
 make check        # lint, types, unit tests, build
